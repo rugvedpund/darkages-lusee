@@ -3,61 +3,20 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
 import argparse
-import yaml
-import os
 
+def timeit(func):
+    import time
 
-class Config(dict):
-    def __init__(self, yaml_file="configs/simtemplate.yaml"):
-        print("Loading config from ", yaml_file)
-        self.yaml_file = yaml_file
-        self.from_yaml(self.yaml_file)
+    def wrapper(*args, **kwargs):
+        start = time.time()
+        out = func(*args, **kwargs)
+        print(f"{func.__name__} took {(time.time() - start):.1f} seconds")
+        return out
 
-    def __repr__(self):
-        return yaml.dump(self)
+    return wrapper
 
-    def __str__(self):
-        return yaml.dump(self)
-
-    @property
-    def name(self):
-        yamlnamedotyaml = os.path.basename(self.yaml_file)
-        yamlname = os.path.splitext(yamlnamedotyaml)[0]
-        return yamlname
-
-    @property
-    def outdir(self):
-        return os.path.join(os.environ["LUSEE_OUTPUT_DIR"], self.name)
-
-    def from_yaml(self, yaml_file):
-        with open(yaml_file) as f:
-            yml = yaml.safe_load(f)
-        self.update(yml)
-
-    def make_ulsa_config(self):
-        print("Making ULSA config")
-        self["sky"] = {"file": "ULSA_32_ddi_smooth.fits"}
-        self["simulation"][
-            "output"
-        ] = f"{self.name}/ulsa.fits"  # $LUSEE_OUTPUT_DIR + self.name + "/ulsa.fits"
-        return self
-
-    def make_da_config(self):
-        print("Making DA config")
-        self["sky"] = {"type": "DarkAges"}
-        self["simulation"][
-            "output"
-        ] = f"{self.name}/da.fits"  # $LUSEE_OUTPUT_DIR + self.name + "/da.fits"
-        return self
-
-    def make_cmb_config(self):
-        print("Making CMB config")
-        self["sky"] = {"type": "CMB"}
-        self["simulation"][
-            "output"
-        ] = f"{self.name}/cmb.fits"  # $LUSEE_OUTPUT_DIR + self.name + "/cmb.fits"
-        return self
-
+def exp(arr: np.ndarray):
+    return np.exp(arr - arr.max())
 
 def is_comb(comb):
     assert comb[-1] in ["R", "I"]
@@ -79,8 +38,9 @@ def flatten_combs(data):
 
 def create_parser():
     parser = argparse.ArgumentParser()
-    parser.add_argument("fname", type=str)
-    parser.add_argument("--comb", type=str)
+    parser.add_argument("--configs", nargs="*", help="config yaml paths")
+    parser.add_argument("--outputs", nargs="*", help="output dir path")
+    parser.add_argument("--params_yaml", type=str, help="param yaml path")
     parser.add_argument("--retrain", action="store_true")
     return parser
 
@@ -150,8 +110,8 @@ def plt_scree(sky, ax=None, **kwargs):
     ax.set_xlabel("eigmodes")
     ax.set_ylabel("T[K]")
     ax.set_yscale("log")
+    ax.grid()
     return ax
-
 
 
 # D = lusee.Data("gaussbeam.fits")

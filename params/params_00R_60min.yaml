@@ -1,0 +1,16 @@
+sky:
+  config_paths:
+  - configs/a0_dt60.yaml
+  - configs/a10_dt60.yaml
+  - configs/a20_dt60.yaml
+  - configs/a30_dt60.yaml
+  - configs/a40_dt60.yaml
+  - configs/a50_dt60.yaml
+  - configs/a60_dt60.yaml
+  - configs/a70_dt60.yaml
+  - configs/a80_dt60.yaml
+  comb: 00R
+  subsample: 60
+
+flow:
+  path: flows/00R_60min.simflow
