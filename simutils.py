@@ -42,6 +42,7 @@ def create_parser():
     parser.add_argument("--outputs", nargs="*", help="output dir path")
     parser.add_argument("--params_yaml", type=str, help="param yaml path")
     parser.add_argument("--retrain", action="store_true")
+    parser.add_argument("--comb", type=str, help="e.g. 00R, auto, all", default="00R")
     return parser
 
 
@@ -113,6 +114,52 @@ def plt_scree(sky, ax=None, **kwargs):
     ax.grid()
     return ax
 
+def plt_pairplot(data, eigmodes):
+    ndim, ndata = data.shape
+    nmodes = len(eigmodes)
+    fig,ax = plt.subplots(nmodes,nmodes,figsize=(nmodes*2,nmodes*2))
+    for i in range(nmodes):
+        for j in range(nmodes):
+            if i == j:
+                ax[i,i].hist(data[eigmodes[i]])
+                ax[i,i].set_xlabel(f"mode {eigmodes[i]}")
+            if i < j:
+                ax[i,j].set_axis_off()
+            if i > j:
+                ax[i,j].scatter(data[eigmodes[j]],data[eigmodes[i]])
+                ax[i,j].set_xlabel(f"mode {eigmodes[j]}")
+                ax[i,j].set_ylabel(f"mode {eigmodes[i]}")
+    return fig,ax
+
+def simflow_forward(simflow):
+    nf_pdata = simflow.flow.forward(simflow.sky.ulsa.norm_pdata.T)
+    nf_pmean = simflow.flow.forward(simflow.sky.ulsa.norm_pmean.reshape(1,-1))
+    nf_pda = simflow.flow.forward(simflow.sky.da.norm_pmean.reshape(1,-1))
+    nf_pcmb = simflow.flow.forward(simflow.sky.cmb.norm_pmean.reshape(1,-1))
+    return nf_pdata, nf_pmean, nf_pda, nf_pcmb
+
+def sns_pairplot(norm_pdata,ulsa_norm_pmean,da_norm_pmean,cmb_norm_pmean,eigmodes):
+    import seaborn as sns
+    import pandas as pd
+    ndim, ndata = norm_pdata.shape
+    d = np.vstack(
+        [
+            norm_pdata.T,
+            ulsa_norm_pmean,
+            da_norm_pmean,
+            cmb_norm_pmean,
+        ]
+    )
+    index = ["data"] * ndata + ["mean ulsa", "mean da", "mean cmb"]
+    df = pd.DataFrame(d, index=index).reset_index()
+    kwargs = {
+        "markers": [".", "d", "^", "v"],
+        "height": 3,
+        "vars": eigmodes,
+        "hue": "index",
+    }
+    pairplt=sns.pairplot(df, **kwargs)
+    return pairplt
 
 # D = lusee.Data("gaussbeam.fits")
 # fig, ax = plt.subplots(4, 4, figsize=(15, 8))
