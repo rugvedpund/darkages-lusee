@@ -8,6 +8,7 @@ import lusee
 import simutils
 from sinf import GIS
 import torch
+
 # import concurrent.futures
 # import normflows
 
@@ -72,13 +73,8 @@ class SimFlow:
         return self.sky
 
     def load_flow(self):
-        # flow_path = self.params["flow"]["path"]
-        # if os.path.exists(flow_path):
-        #     print("loading flow from", flow_path)
-        #     self.flow = NormalizingFlow().load(flow_path)
-        #     return self.flow
         print("loading new normalizing flow..")
-        return NormalizingFlow()
+        return LikelihoodModel()
 
     @simutils.timeit
     def train(self):
@@ -100,25 +96,63 @@ class SimFlow:
 
     def run(self, amp: np.ndarray, true_amp=1.0):
         print("running flow to calculate likelihoods..")
-        self.amp = amp[:, None] # (namps, 1)
-        self.ulsa_means = self.sky.ulsa.norm_pmean.copy()[None,:]  # (1, nfreqs)
-        self.true_da_means = true_amp * self.sky.da.norm_pmean.copy()[None,:]  # (1, nfreqs)
-        self.true_cmb_means = true_amp * self.sky.cmb.norm_pmean.copy()[None,:] # (1, nfreqs)
+        self.amp = amp[:, None]  # (namps, 1)
+        self.ulsa_means = self.sky.ulsa.norm_pmean.copy()[None, :]  # (1, nfreqs)
+        self.true_da_means = (
+            true_amp * self.sky.da.norm_pmean.copy()[None, :]
+        )  # (1, nfreqs)
+        self.true_cmb_means = (
+            true_amp * self.sky.cmb.norm_pmean.copy()[None, :]
+        )  # (1, nfreqs)
 
-        self.ampxda_means = self.amp * self.sky.da.norm_pmean.copy()[None,:]  # (namps, nfreqs)
-        self.ampxcmb_means = self.amp * self.sky.cmb.norm_pmean.copy()[None,:] # (namps, nfreqs)
-        self.da_loglikelihood = self.flow.likelihood(self.ulsa_means + self.true_da_means - self.ampxda_means) # (namps, 1)
-        self.cmb_loglikelihood = self.flow.likelihood(self.ulsa_means + self.true_cmb_means - self.ampxcmb_means) # (namps, 1)
+        self.ampxda_means = (
+            self.amp * self.sky.da.norm_pmean.copy()[None, :]
+        )  # (namps, nfreqs)
+        self.ampxcmb_means = (
+            self.amp * self.sky.cmb.norm_pmean.copy()[None, :]
+        )  # (namps, nfreqs)
+        self.da_loglikelihood = self.flow.likelihood(
+            self.ulsa_means + self.true_da_means - self.ampxda_means
+        )  # (namps, 1)
+        self.cmb_loglikelihood = self.flow.likelihood(
+            self.ulsa_means + self.true_cmb_means - self.ampxcmb_means
+        )  # (namps, 1)
         return self.da_loglikelihood, self.cmb_loglikelihood
 
 
 ##---------------------------------------------------------------------------##
 
-class NormalizingFlow:
-    """Base class for Normalizing Flow"""
+
+class LikelihoodModel:
+    """Base class for any likelihood model"""
 
     def __init__(self):
         self.model = None
+
+    def train(self, data):
+        raise NotImplementedError
+
+    def likelihood(self, vec):
+        raise NotImplementedError
+
+
+class SINF(LikelihoodModel):
+    def __init__(self):
+        super().__init__()
+        return self
+
+    def likelihood(self, vec):
+        assert vec.shape[1] == self.ndim
+        return self.toCPU(self.model.evaluate_density(self.toGPU(vec.copy())))
+
+    def train(self, data):
+        self.model = None
+        self.ndata, self.ndim = data.shape
+        frac = 0.8
+        self.ntrain = int(frac * self.ndata)
+        traindata = data[: self.ntrain, :].copy()
+        valdata = data[self.ntrain :, :].copy()
+        self.model = GIS.GIS(self.toGPU(traindata), self.toGPU(valdata), verbose=True)
 
     def load(self, model_path):
         print("loading model from", model_path)
@@ -129,15 +163,6 @@ class NormalizingFlow:
     def toGPU(self, nparray):
         return torch.from_numpy(nparray).float().to(torch.device("cuda"))
 
-    def train(self, data):
-        self.model = None
-        self.ndata, self.ndim = data.shape
-        frac = 0.8  # 80% training data
-        self.ntrain = int(frac * self.ndata)
-        traindata = data[: self.ntrain, :].copy()
-        valdata = data[self.ntrain :, :].copy()
-        self.model = GIS.GIS(self.toGPU(traindata), self.toGPU(valdata), verbose=True)
-
     def save(self, model_path):
         print("saving model", model_path)
         torch.save(self.model, model_path)
@@ -145,48 +170,40 @@ class NormalizingFlow:
     def toCPU(self, arr: torch.Tensor):
         return arr.cpu().detach().numpy()
 
-    def likelihood(self, vec):
-        assert vec.shape[1] == self.ndim
-        return self.toCPU(self.model.evaluate_density(self.toGPU(vec.copy())))
-
     def forward(self, vec):
         assert vec.shape[1] == self.ndim
-        fwd,_ = self.model.forward(self.toGPU(vec.copy()))
+        fwd, _ = self.model.forward(self.toGPU(vec.copy()))
         return self.toCPU(fwd)
 
-class RealNVP(NormalizingFlow):
-    def __init__(self):
-        self.K = 64
-        self.latent_size = 50
-        self.b = torch.Tensor([1 if i % 2 == 0 else 0 for i in range(self.latent_size)])
-        self.flows = []
-        for i in range(self.K):
-            s = normflows.nets.MLP([self.latent_size, 2 * self.latent_size, self.latent_size], init_zeros=True)
-            t = normflows.nets.MLP([self.latent_size, 2 * self.latent_size, self.latent_size], init_zeros=True)
-            if i % 2 == 0:
-                self.flows += [normflows.flows.MaskedAffineFlow(self.b, t, s)]
-            else:
-                self.flows += [normflows.flows.MaskedAffineFlow(1 - self.b, t, s)]
-            self.flows += [normflows.flows.ActNorm(self.latent_size)]
-        self.q0 = normflows.distributions.DiagGaussian(self.latent_size)
 
-    pass
+class Gaussian:
+    def __init__(self, mu, cov):
+        self.mu = mu
+        self.cov = cov
 
-class SINF(NormalizingFlow):
+    def evaluate_density(self, vec):
+        return scipy.stats.multivariate_normal.pdf(vec, mean=self.mu, cov=self.cov)
+
+
+class GaussianApprox(LikelihoodModel):
     def __init__(self):
         super().__init__()
-        return self
-    def likelihood(self, vec):
+
+    def loglikelihood(self, vec):
+        assert self.model is not None
         assert vec.shape[1] == self.ndim
-        return self.toCPU(self.model.evaluate_density(self.toGPU(vec.copy())))
-    def train(self,data):
-        self.model = None
+        return np.log(self.model.evaluate_density(vec))
+
+    def train(self, data):
         self.ndata, self.ndim = data.shape
-        frac = 0.8
-        self.ntrain = int(frac * self.ndata)
-        traindata = data[:self.ntrain,:].copy()
-        valdata = data[self.ntrain:,:].copy()
-        self.train_GIS(traindata, valdata)
+        self.traindata = data
+        self.mu = self.traindata.mean(axis=0)
+        self.cov = np.cov(self.traindata.T)
+        self.model = Gaussian(self.mu, self.cov)
+        return self
+
+
+##---------------------------------------------------------------------------##
 
 
 class SkyAnalyzer:
@@ -351,19 +368,24 @@ class SimSignal(SimData):
         self.norm_pmean = self.proj_mean / self.fg.proj_rms
         return self
 
-class SimNoise():
-    def __init__(self,SNR):
+
+class SimNoise:
+    def __init__(self, SNR):
         self.SNR = SNR
         self.noise = None
+
     def add_noise(self, data):
         """noise is radiometer like"""
         ndim, ntimes = data.shape
         noise_sigma = data.mean(axis=1) * np.sqrt(ntimes) / self.SNR
-        self.noise = np.vstack([np.random.normal(0, sigma, ntimes) for sigma in noise_sigma])
+        self.noise = np.vstack(
+            [np.random.normal(0, sigma, ntimes) for sigma in noise_sigma]
+        )
         print("adding noise ", self.noise.shape, "to (nfreq,ndata)", data.shape)
         print(noise_sigma)
         print(self.noise)
         return data + self.noise
+
 
 class Foregrounds(SimForeground):
     """Wrapper for combined foregrounds. Multiple fits files"""

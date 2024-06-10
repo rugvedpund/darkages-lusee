@@ -3,6 +3,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
 import argparse
+import seaborn as sns
+import pandas as pd
 
 def timeit(func):
     import time
@@ -101,13 +103,13 @@ def plt_waterfall(D, comb, ax=None, **kwargs):
     return ax
 
 
-def plt_scree(sky, ax=None, **kwargs):
+def plt_scree(sky, ax=None, scale_rms=1.0, **kwargs):
     if ax is None:
         ax = plt.gca()
     ax.plot(np.abs(sky.ulsa.proj_mean), c="C0", **kwargs)
     ax.plot(np.abs(sky.da.proj_mean), c="C1", **kwargs)
     ax.plot(np.abs(sky.cmb.proj_mean), c="C2", **kwargs)
-    ax.plot(sky.ulsa.proj_rms, c="C3", **kwargs)
+    ax.plot(sky.ulsa.proj_rms*scale_rms, c="C3", **kwargs)
     ax.set_xlabel("eigmodes")
     ax.set_ylabel("T[K]")
     ax.set_yscale("log")
@@ -138,9 +140,13 @@ def simflow_forward(simflow):
     nf_pcmb = simflow.flow.forward(simflow.sky.cmb.norm_pmean.reshape(1,-1))
     return nf_pdata, nf_pmean, nf_pda, nf_pcmb
 
-def sns_pairplot(norm_pdata,ulsa_norm_pmean,da_norm_pmean,cmb_norm_pmean,eigmodes):
-    import seaborn as sns
-    import pandas as pd
+def sns_pairplot(eigmodes,sky=None,norm_pdata=None,ulsa_norm_pmean=None,da_norm_pmean=None,cmb_norm_pmean=None):
+    assert sky is not None or (norm_pdata,ulsa_norm_pmean,da_norm_pmean,cmb_norm_pmean) != (None,None,None,None)
+    if sky is not None:
+        norm_pdata = sky.ulsa.norm_pdata
+        ulsa_norm_pmean = sky.ulsa.norm_pmean
+        da_norm_pmean = sky.da.norm_pmean
+        cmb_norm_pmean = sky.cmb.norm_pmean
     ndim, ndata = norm_pdata.shape
     d = np.vstack(
         [
@@ -154,7 +160,7 @@ def sns_pairplot(norm_pdata,ulsa_norm_pmean,da_norm_pmean,cmb_norm_pmean,eigmode
     df = pd.DataFrame(d, index=index).reset_index()
     kwargs = {
         "markers": [".", "d", "^", "v"],
-        "height": 3,
+        "height": 2,
         "vars": eigmodes,
         "hue": "index",
     }
