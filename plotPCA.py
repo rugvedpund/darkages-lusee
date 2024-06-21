@@ -54,30 +54,30 @@ if __name__ == "__main__":
     # plt.legend()
     # plt.show()
 
-    ndim, ndata = sky.ulsa.data.shape
-    # eigmodes = np.arange(ndim)
-    eigmodes = np.arange(0, ndim, 1)
-    print(eigmodes)
-    import ipdb; ipdb.set_trace()
-    print("plot pair plot..")
-    d = np.vstack(
-        [
-            sky.ulsa.norm_pdata.T,
-            sky.ulsa.norm_pmean,
-            sky.da.norm_pmean,
-            sky.cmb.norm_pmean,
-        ]
-    )
-    index = ["data"] * ndata + ["mean ulsa", "mean da", "mean cmb"]
-    df = pd.DataFrame(d, index=index).reset_index()
-    kwargs = {
-        "markers": [".", "d", "^", "v"],
-        "height": 3,
-        "vars": eigmodes,
-        "hue": "index",
-    }
-    pairplt=sns.pairplot(df, **kwargs)
-    plt.savefig(f"outputs/pairplot_{comb}_a0-80.png")
+    # ndim, ndata = sky.ulsa.data.shape
+    # # eigmodes = np.arange(ndim)
+    # eigmodes = np.arange(0, ndim, 1)
+    # print(eigmodes)
+    # import ipdb; ipdb.set_trace()
+    # print("plot pair plot..")
+    # d = np.vstack(
+    #     [
+    #         sky.ulsa.norm_pdata.T,
+    #         sky.ulsa.norm_pmean,
+    #         sky.da.norm_pmean,
+    #         sky.cmb.norm_pmean,
+    #     ]
+    # )
+    # index = ["data"] * ndata + ["mean ulsa", "mean da", "mean cmb"]
+    # df = pd.DataFrame(d, index=index).reset_index()
+    # kwargs = {
+    #     "markers": [".", "d", "^", "v"],
+    #     "height": 3,
+    #     "vars": eigmodes,
+    #     "hue": "index",
+    # }
+    # pairplt=sns.pairplot(df, **kwargs)
+    # # plt.savefig(f"outputs/pairplot_{comb}_a0-80.png")
     # plt.show()
 
 ###---------------------------------------------------------------------------##

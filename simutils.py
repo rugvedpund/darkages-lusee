@@ -1,10 +1,12 @@
 import lusee
 import numpy as np
+import matplotlib as mpl
 import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
 import argparse
 import seaborn as sns
 import pandas as pd
+
 
 def timeit(func):
     import time
@@ -17,8 +19,10 @@ def timeit(func):
 
     return wrapper
 
+
 def exp(arr: np.ndarray):
     return np.exp(arr - arr.max())
+
 
 def is_comb(comb):
     assert comb[-1] in ["R", "I"]
@@ -103,45 +107,54 @@ def plt_waterfall(D, comb, ax=None, **kwargs):
     return ax
 
 
-def plt_scree(sky, ax=None, scale_rms=1.0, **kwargs):
+def plt_scree(sky, ax=None, scale_rms=1.0, true_amp=1.0, **kwargs):
     if ax is None:
         ax = plt.gca()
     ax.plot(np.abs(sky.ulsa.proj_mean), c="C0", **kwargs)
-    ax.plot(np.abs(sky.da.proj_mean), c="C1", **kwargs)
-    ax.plot(np.abs(sky.cmb.proj_mean), c="C2", **kwargs)
-    ax.plot(sky.ulsa.proj_rms*scale_rms, c="C3", **kwargs)
+    ax.plot(np.abs(sky.da.proj_mean * true_amp), c="C1", **kwargs)
+    ax.plot(np.abs(sky.cmb.proj_mean * true_amp), c="C2", **kwargs)
+    ax.plot(sky.ulsa.proj_rms * scale_rms, c="C3", **kwargs)
     ax.set_xlabel("eigmodes")
     ax.set_ylabel("T[K]")
     ax.set_yscale("log")
     ax.grid()
     return ax
 
+
 def plt_pairplot(data, eigmodes):
     ndim, ndata = data.shape
     nmodes = len(eigmodes)
-    fig,ax = plt.subplots(nmodes,nmodes,figsize=(nmodes*2,nmodes*2))
+    fig, ax = plt.subplots(nmodes, nmodes, figsize=(nmodes * 2, nmodes * 2))
     for i in range(nmodes):
         for j in range(nmodes):
             if i == j:
-                ax[i,i].hist(data[eigmodes[i]])
-                ax[i,i].set_xlabel(f"mode {eigmodes[i]}")
+                ax[i, i].hist(data[eigmodes[i]])
+                ax[i, i].set_xlabel(f"mode {eigmodes[i]}")
             if i < j:
-                ax[i,j].set_axis_off()
+                ax[i, j].set_axis_off()
             if i > j:
-                ax[i,j].scatter(data[eigmodes[j]],data[eigmodes[i]])
-                ax[i,j].set_xlabel(f"mode {eigmodes[j]}")
-                ax[i,j].set_ylabel(f"mode {eigmodes[i]}")
-    return fig,ax
+                ax[i, j].scatter(data[eigmodes[j]], data[eigmodes[i]])
+                ax[i, j].set_xlabel(f"mode {eigmodes[j]}")
+                ax[i, j].set_ylabel(f"mode {eigmodes[i]}")
+    return fig, ax
+
 
 def simflow_forward(simflow):
     nf_pdata = simflow.flow.forward(simflow.sky.ulsa.norm_pdata.T)
-    nf_pmean = simflow.flow.forward(simflow.sky.ulsa.norm_pmean.reshape(1,-1))
-    nf_pda = simflow.flow.forward(simflow.sky.da.norm_pmean.reshape(1,-1))
-    nf_pcmb = simflow.flow.forward(simflow.sky.cmb.norm_pmean.reshape(1,-1))
+    nf_pmean = simflow.flow.forward(simflow.sky.ulsa.norm_pmean.reshape(1, -1))
+    nf_pda = simflow.flow.forward(simflow.sky.da.norm_pmean.reshape(1, -1))
+    nf_pcmb = simflow.flow.forward(simflow.sky.cmb.norm_pmean.reshape(1, -1))
     return nf_pdata, nf_pmean, nf_pda, nf_pcmb
 
-def sns_pairplot(eigmodes,sky=None,norm_pdata=None,ulsa_norm_pmean=None,da_norm_pmean=None,cmb_norm_pmean=None):
-    assert sky is not None or (norm_pdata,ulsa_norm_pmean,da_norm_pmean,cmb_norm_pmean) != (None,None,None,None)
+
+def sns_pairplot(
+    eigmodes,
+    sky=None,
+    norm_pdata=None,
+    ulsa_norm_pmean=None,
+    da_norm_pmean=None,
+    cmb_norm_pmean=None,
+):
     if sky is not None:
         norm_pdata = sky.ulsa.norm_pdata
         ulsa_norm_pmean = sky.ulsa.norm_pmean
@@ -163,9 +176,86 @@ def sns_pairplot(eigmodes,sky=None,norm_pdata=None,ulsa_norm_pmean=None,da_norm_
         "height": 2,
         "vars": eigmodes,
         "hue": "index",
+        "diag_kind": "hist",
     }
-    pairplt=sns.pairplot(df, **kwargs)
+    pairplt = sns.pairplot(df, **kwargs)
     return pairplt
+
+
+def sns_pairplot_addGauss(pairplt, gauss, eigmodes, **kwargs):
+    label = kwargs.get("label", None)
+    color = kwargs.get("color", "C4")
+    for yidx, ymode in enumerate(eigmodes):
+        for xidx, xmode in enumerate(eigmodes):
+            if xidx != yidx:
+                ell = mpl.patches.Ellipse(
+                    xy=(0, 0),
+                    width=2 * gauss.sigmas[xmode],
+                    height=2 * gauss.sigmas[ymode],
+                    # angle=np.rad2deg(np.arccos(eve[0, 0])),
+                )
+                ell.set_facecolor("none")
+                ell.set_edgecolor(color)
+                ell.set_label(label)
+                pairplt.axes[yidx, xidx].add_artist(ell)
+            else:
+                rms = gauss.sigmas[ymode]
+                pairplt.axes[yidx, yidx].axvline(rms, color=color, label=label)
+                pairplt.axes[yidx, yidx].axvline(-rms, color=color, label=label)
+    return pairplt
+
+    # for ax in pairplt.axes.flatten():
+    #     xlabel = ax.get_xlabel()
+    #     ylabel = ax.get_ylabel()
+    #     if xlabel != '' and ylabel != '':
+    #         xidx,yidx = int(xlabel), int(ylabel)
+    #         ell = mpl.patches.Ellipse(xy=(0,0),
+    #                                   width=2*gauss.sigmas[xidx], height=2*gauss.sigmas[yidx],
+    #                                   # angle=np.rad2deg(np.arccos(eve[0, 0])),
+    #                                   )
+    #         ell.set_facecolor('none')
+    #         ell.set_edgecolor(color)
+    #         ell.set_label(label)
+    #         ax.add_artist(ell)
+    #         # ax.set_xlim(gauss.mu[xidx]-2*eva[0], gauss.mu[xidx]+2*eva[0])
+    #         # ax.set_ylim(gauss.mu[yidx]-2*eva[1], gauss.mu[yidx]+2*eva[1])
+    #     if xlabel == '' and ylabel != '':
+    #         yidx = int(ylabel)
+    #         rms = gauss.sigmas[yidx]
+    #         ax.axvline(rms, color=color, label=label)
+    #         ax.axvline(-rms, color=color, label=label)
+    #         # ax.set_xlim(gauss.mu[yidx]-2*rms, gauss.mu[yidx]+2*rms)
+    #     if xlabel != '' and ylabel == '':
+    #         xidx = int(xlabel)
+    #         rms = gauss.sigmas[xidx]
+    #         ax.axvline(rms, color=color, label=label)
+    #         ax.axvline(-rms, color=color, label=label)
+    #         # ax.set_xlim(gauss.mu[xidx]-2*rms, gauss.mu[xidx]+2*rms)
+    return pairplt
+
+
+def sns_pairplot_addVectors(
+    pairplt, ulsa_norm_pmean, sig_norm_pmean, eigmodes, **kwargs
+):
+    label = kwargs.get("label", None)
+    color = kwargs.get("color", "k")
+    amp = np.linspace(0,1000,num=100)
+    base = ulsa_norm_pmean + sig_norm_pmean
+    a0 = np.linalg.norm(sig_norm_pmean)
+    unit_sig = sig_norm_pmean / a0
+    vec = base[:,None] - unit_sig[:,None] * amp[None,:]
+    for yidx, ymode in enumerate(eigmodes):
+        for xidx, xmode in enumerate(eigmodes):
+            if xidx != yidx:
+                ax = pairplt.axes[yidx, xidx]
+                xlim,ylim = ax.get_xlim(), ax.get_ylim()
+                ax.plot(base[xmode], base[ymode], "o", color=color, label=label)
+                ax.plot(vec[xmode], vec[ymode], color=color, label=label)
+                ax.plot(ulsa_norm_pmean[xmode], ulsa_norm_pmean[ymode], "d", color="C1", label="mean ulsa")
+                ax.set_xlim(xlim)
+                ax.set_ylim(ylim)
+    return pairplt
+
 
 # D = lusee.Data("gaussbeam.fits")
 # fig, ax = plt.subplots(4, 4, figsize=(15, 8))

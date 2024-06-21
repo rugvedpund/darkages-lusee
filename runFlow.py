@@ -75,7 +75,3 @@ plt.suptitle(simflow.params["flow"]["path"])
 plt.tight_layout()
 plt.show()
 
-
-
-
-

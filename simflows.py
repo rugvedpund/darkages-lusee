@@ -8,20 +8,8 @@ import lusee
 import simutils
 from sinf import GIS
 import torch
-
-# import concurrent.futures
-# import normflows
-
 torch.manual_seed(0)
 
-"""
-- flow must be linked with sky that trained it
-- sky is further processed to train flow, so flow needs more info in its filename
-- loading a flow should load the sky that trained it to the same state
-- save flow+sky in one dir
-- dirname comes from config that made the sky + trained the flow
-
-"""
 ##---------------------------------------------------------------------------##
 
 
@@ -181,26 +169,73 @@ class Gaussian:
         self.mu = mu
         self.cov = cov
 
-    def evaluate_density(self, vec):
-        return scipy.stats.multivariate_normal.pdf(vec, mean=self.mu, cov=self.cov)
+    def loglikelihood(self, vec):
+        return scipy.stats.multivariate_normal.logpdf(vec, mean=self.mu, cov=self.cov)
 
 
 class GaussianApprox(LikelihoodModel):
     def __init__(self):
         super().__init__()
 
-    def loglikelihood(self, vec):
-        assert self.model is not None
-        assert vec.shape[1] == self.ndim
-        return np.log(self.model.evaluate_density(vec))
-
-    def train(self, data):
-        self.ndata, self.ndim = data.shape
-        self.traindata = data
-        self.mu = self.traindata.mean(axis=0)
-        self.cov = np.cov(self.traindata.T)
+    def train(self, sky):
+        print("training Gaussian model..")
+        self.sky = sky
+        self.data = sky.ulsa.norm_pdata.copy()
+        self.pmean = sky.ulsa.norm_pmean.copy()
+        self.ndim, self.ndata = self.data.shape
+        self.modes = np.linspace(1, self.ndim, num=self.ndim)
+        self.mu = self.data.mean(axis=1)
+        self.cov = np.cov(self.data)
+        self.sigmas = np.sqrt(np.diag(self.cov))
         self.model = Gaussian(self.mu, self.cov)
         return self
+
+    @property
+    def sigmadev(self):
+        return np.abs(self.pmean - self.mu) / self.sigmas
+
+    def scale_model(self, scale):
+        self.scale = scale
+        self.cov = self.cov * self.scale[:, None] ** 2
+        self.sigmas = np.sqrt(np.diag(self.cov))
+        self.model = Gaussian(self.mu, self.cov)
+        return self
+
+    # def autoscale_model(self, kind="linear", **kwargs):
+    #     print("autoscaling model..")
+    #     if kind == "linear":
+    #         return self.autoscale_linear(**kwargs)
+    #     if kind == "sigmoid":
+    #         return self.autoscale_sigmoid(**kwargs)
+    #     else:
+    #         raise NotImplementedError
+
+    # def autoscale_linear(self, slope=1.0, intercept=0.0):
+    #     print("using linear autoscale with slope", slope, "and intercept", intercept)
+    #     nmodes = self.ndim
+    #     scale = slope*self.modes + intercept
+    #     self.cov = self.cov * scale[:,None]**2
+    #     self.sigmas = np.sqrt(np.diag(self.cov))
+    #     self.model = Gaussian(self.mu, self.cov)
+    #     return self
+
+    def get_da_loglikelihood(self, amp, true_amp=1.0):
+        print("getting DA loglikelihood..")
+        assert self.model is not None, "need to train model first"
+        self.ulsa_means = self.sky.ulsa.norm_pmean.copy()[None, :]
+        self.da_means = self.sky.da.norm_pmean.copy()[None, :] * true_amp
+        self.ampxda_means = self.sky.da.norm_pmean.copy()[None, :] * amp[:, None]
+        self.da_loglikelihood = self.model.loglikelihood(self.ulsa_means + self.da_means - self.ampxda_means)
+        return self.da_loglikelihood
+
+    def get_cmb_loglikelihood(self, amp, true_amp=1.0):
+        print("getting CMB loglikelihood..")
+        assert self.model is not None, "need to train model first"
+        self.ulsa_means = self.sky.ulsa.norm_pmean.copy()[None, :]
+        self.cmb_means = self.sky.cmb.norm_pmean.copy()[None, :] * true_amp
+        self.ampxcmb_means = self.sky.cmb.norm_pmean.copy()[None, :] * amp[:, None]
+        self.cmb_loglikelihood = self.model.loglikelihood(self.ulsa_means + self.cmb_means - self.ampxcmb_means)
+        return self.cmb_loglikelihood
 
 
 ##---------------------------------------------------------------------------##
