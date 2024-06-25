@@ -87,6 +87,18 @@ def all_combs(n):
                 combs.append(f"{i}{j}I")
     return combs
 
+def get_combs_list(comb):
+    if comb == "auto":
+        return ["00R","11R","22R","33R"]
+    if comb == "all":
+        return combs(4)
+    if comb == "crossimag":
+        return ["01I","02I","03I","12I","13I","23I"]
+    if comb == "crossreal":
+        return ["01R","02R","03R","12R","13R","23R"]
+    if is_comb(comb):
+        return [comb]
+    raise ValueError(f"comb {comb} is not valid")
 
 def plt_waterfall(D, comb, ax=None, **kwargs):
     if ax is None:

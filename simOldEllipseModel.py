@@ -6,97 +6,120 @@ import seaborn as sns
 import pandas as pd
 import matplotlib as mpl
 import scipy
-from copy import deepcopy
 
 
 ##---------------------------------------------------------------------------##
 
-def linear(x, slope, intercept):
-    return slope * x + intercept
-def sqrt(x, amp):
-    return amp * np.sqrt(x)
-
 parser = simutils.create_parser()
 args = parser.parse_args()
 sky = sf.SkyAnalyzer().from_args(args)
+sky.set_comb(args.comb)
+sky.doPCA_and_project()
 
-combs_list = simutils.get_combs_list(args.comb)
-gaussians = dict()
-skies = dict()
+pmean = sky.ulsa.proj_mean.copy()
+sigmadev = np.abs(pmean / sky.ulsa.proj_rms.copy())
 
-for comb in combs_list:
-    s=deepcopy(sky)
-    s.set_comb(comb)
-    s.doPCA_and_project()
-    skies[comb] = deepcopy(s)
-    gauss = sf.GaussianApprox()
-    gauss.train(s)
-    (slope, intercept), _ = scipy.optimize.curve_fit(linear, gauss.modes, gauss.sigmadev)
-    # gauss.scale_model(linear(gauss.modes, slope=3*slope, intercept=3*intercept))
-    gauss.scale_model(linear(gauss.modes, slope=3*slope, intercept=10.0))
-    gaussians[comb] = gauss
+gaussRef = sf.GaussianApprox()
+gaussRef.train(sky)
+
+
+def linear(x, slope, intercept):
+    return slope * x + intercept
+
+
+def sqrt(x, amp):
+    return amp * np.sqrt(x)
+
+
+gaussA = sf.GaussianApprox()
+gaussA.train(sky)
+sigmamaxdev = np.max(gaussA.sigmadev)
+gaussA.scale_model(linear(gaussA.modes, slope=0.0, intercept=sigmamaxdev))
+
+gaussB = sf.GaussianApprox()
+gaussB.train(sky)
+gaussB.scale_model(linear(gaussB.modes, slope=1.0, intercept=1.0))
+
+gaussC = sf.GaussianApprox()
+gaussC.train(sky)
+(slope, intercept), _ = scipy.optimize.curve_fit(linear, gaussC.modes, gaussC.sigmadev)
+gaussC.scale_model(linear(gaussC.modes, slope=3*slope, intercept=3*intercept))
+
+gaussD = sf.GaussianApprox()
+gaussD.train(sky)
+# amp,_ = scipy.optimize.curve_fit(sqrt, gaussD.modes, gaussD.sigmadev)
+gaussD.scale_model(sqrt(gaussD.modes, amp=10.0))
 
 true_amp = 1.0
 
 ##---------------------------------------------------------------------------##
 # scree plot
 
-fig, ax = plt.subplots(len(combs_list), 2, figsize=(12, 3*len(combs_list)))
-for icomb, comb in enumerate(combs_list):
-    simutils.plt_scree(skies[comb], ax=ax[icomb,0], true_amp=true_amp)
-    ax[icomb,0].plot([], [], "C0", label="mean ulsa")
-    ax[icomb,0].plot([], [], "C1", label="mean da")
-    ax[icomb,0].plot([], [], "C2", label="mean cmb")
-    ax[icomb,0].plot([], [], "C3", label="rms ulsa")
+fig, ax = plt.subplots(1, 2, figsize=(12, 6))
+simutils.plt_scree(sky, ax=ax[0], true_amp=true_amp)
+ax[0].plot([], [], "C0", label="mean ulsa")
+ax[0].plot([], [], "C1", label="mean da")
+ax[0].plot([], [], "C2", label="mean cmb")
+ax[0].plot([], [], "C3", label="rms ulsa")
 
-    ax[icomb,0].plot(gaussians[comb].sigmas * skies[comb].ulsa.proj_rms, c="C4", label="gauss", ls=":")
-    ax[icomb,0].legend(loc="upper right")
+ax[0].plot(gaussRef.sigmas * sky.ulsa.proj_rms, c="C4", label="gauss", ls="--")
+ax[0].plot(gaussA.sigmas * sky.ulsa.proj_rms, c="C5", label=f"A")
+ax[0].plot(gaussB.sigmas * sky.ulsa.proj_rms, c="C5", label="B", ls="--")
+ax[0].plot(gaussC.sigmas * sky.ulsa.proj_rms, c="C5", label="C", ls=":")
+ax[0].plot(gaussD.sigmas * sky.ulsa.proj_rms, c="C5", label="D", ls="-.")
+ax[0].legend(loc="upper right")
 
-    pmean = skies[comb].ulsa.proj_mean.copy()
-    sigmadev = np.abs(pmean / skies[comb].ulsa.proj_rms.copy())
-    ax[icomb,1].plot(sigmadev, c="C0", label="mean ulsa")
-    ax[icomb,1].plot(np.ones_like(sigmadev), c="C3", label="rms ulsa")
+ax[1].plot(sigmadev, c="C0", label="mean ulsa")
+ax[1].plot(np.ones_like(sigmadev), c="C3", label="rms ulsa")
 
-    ax[icomb,1].plot(gaussians[comb].sigmas, c="C4", label="gauss", ls="--")
-    ax[icomb,1].set_xlabel("eigmodes")
-    ax[icomb,1].set_ylabel("sigma deviation")
-    ax[icomb,1].legend(loc="upper right")
+ax[1].plot(gaussRef.sigmas, c="C4", label="gauss", ls="--")
+ax[1].plot(gaussA.sigmas, c="C5", label="A")
+ax[1].plot(gaussB.sigmas, c="C5", label="B", ls="--")
+ax[1].plot(gaussC.sigmas, c="C5", label="C", ls=":")
+ax[1].plot(gaussD.sigmas, c="C5", label="D", ls="-.")
+ax[1].set_xlabel("eigmodes")
+ax[1].set_ylabel("sigma deviation")
+ax[1].legend(loc="upper right")
 
-    ax[icomb,0].set_title(f"{comb}")
-    ax[icomb,1].set_title(f"{comb}")
-fig.tight_layout()
-fig.show()
+plt.show()
 
 ###---------------------------------------------------------------------------##
 ## Likelihood plot
 
+# amp = np.logspace(np.log10(true_amp*1e-2),np.log10(true_amp*1e5),1000)
+# amp = np.linspace(-true_amp * 1e5, true_amp * 1e5, 1000)
+amp = np.linspace(-true_amp * 1e3, true_amp * 1e3, 1000)
+
+llda_ref = gaussRef.get_da_loglikelihood(amp, true_amp=true_amp)
+llda_A = gaussA.get_da_loglikelihood(amp, true_amp=true_amp)
+llda_B = gaussB.get_da_loglikelihood(amp, true_amp=true_amp)
+llda_C = gaussC.get_da_loglikelihood(amp, true_amp=true_amp)
+llda_D = gaussD.get_da_loglikelihood(amp, true_amp=true_amp)
+
+llcmb_ref = gaussRef.get_cmb_loglikelihood(amp, true_amp=true_amp)
+llcmb_A = gaussA.get_cmb_loglikelihood(amp, true_amp=true_amp)
+llcmb_B = gaussB.get_cmb_loglikelihood(amp, true_amp=true_amp)
+llcmb_C = gaussC.get_cmb_loglikelihood(amp, true_amp=true_amp)
+llcmb_D = gaussD.get_cmb_loglikelihood(amp, true_amp=true_amp)
+
 fig, ax = plt.subplots(1, 2, figsize=(12, 6))
 da_amp = 40
 cmb_amp = 2.7
-print("true_amp: ", true_amp)
 
-# amp = np.logspace(np.log10(true_amp*1e-2),np.log10(true_amp*1e5),1000)
-# amp = np.linspace(-true_amp * 1e5, true_amp * 1e5, 1000)
-amp = np.linspace(-true_amp * 1e5, true_amp * 1e5, 100000)
-da_loglikelihoods = dict()
-cmb_loglikelihoods = dict()
-for comb, gauss in gaussians.items():
-    print("calculating likelihoods for ", comb)
-    da_loglikelihoods[comb]=gauss.get_da_loglikelihood(amp, true_amp=true_amp)
-    cmb_loglikelihoods[comb]=gauss.get_cmb_loglikelihood(amp, true_amp=true_amp)
-    ax[0].plot(amp, simutils.exp(da_loglikelihoods[comb]), label=comb, ls="--")
-    ax[1].plot(amp, simutils.exp(cmb_loglikelihoods[comb]), label=comb, ls="--")
+ax[0].plot(da_amp*amp, simutils.exp(llda_ref),c="C4", label="gauss")
+ax[0].plot(da_amp*amp, simutils.exp(llda_A),c="C5", label="A")
+ax[0].plot(da_amp*amp, simutils.exp(llda_B),c="C5", label="B", ls="--")
+ax[0].plot(da_amp*amp, simutils.exp(llda_C),c="C5", label="C", ls=":")
+ax[0].plot(da_amp*amp, simutils.exp(llda_D),c="C5", label="D", ls="-.")
 
-da_loglikelihoods["all"] = np.sum([da_loglikelihoods[comb] for comb in combs_list], axis=0)
-cmb_loglikelihoods["all"] = np.sum([cmb_loglikelihoods[comb] for comb in combs_list], axis=0)
-ax[0].plot(amp, simutils.exp(da_loglikelihoods["all"]), label="all", lw=2.0, color="k")
-ax[1].plot(amp, simutils.exp(cmb_loglikelihoods["all"]), label="all", lw=2.0, color="k")
+ax[1].plot(cmb_amp*amp, simutils.exp(llcmb_ref),c="C4", label="gauss")
+ax[1].plot(cmb_amp*amp, simutils.exp(llcmb_A),c="C5", label="A")
+ax[1].plot(cmb_amp*amp, simutils.exp(llcmb_B),c="C5", label="B", ls="--")
+ax[1].plot(cmb_amp*amp, simutils.exp(llcmb_C),c="C5", label="C", ls=":")
+ax[1].plot(cmb_amp*amp, simutils.exp(llcmb_D),c="C5", label="D", ls="-.")
 
-ax[0].axvline(x=da_amp*true_amp, color="gray", label="truth")
-ax[0].axvline(x=-da_amp*true_amp, color="gray")
-ax[1].axvline(x=cmb_amp*true_amp, color="gray", label="truth")
-ax[1].axvline(x=-cmb_amp*true_amp, color="gray")
-
+ax[0].axvline(x=da_amp*true_amp, color="k", label="truth", lw=0.5)
+ax[1].axvline(x=cmb_amp*true_amp, color="k", label="truth", lw=0.5)
 ax[0].set_ylabel("likelihood")
 ax[1].set_ylabel("likelihood")
 ax[0].set_xlabel("amplitude [mK]")
@@ -107,7 +130,7 @@ ax[1].set_title(f"{true_amp:,.0f}x true CMB amplitude")
 # ax[1].set_xscale("log")
 ax[0].legend()
 ax[1].legend()
-plt.suptitle(f"Product of GaussianApprox models: {args.comb}")
+plt.suptitle(f"GaussianApprox model: {args.comb}")
 plt.tight_layout()
 plt.show()
 
