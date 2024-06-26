@@ -240,6 +240,69 @@ class GaussianApprox(LikelihoodModel):
 
 ##---------------------------------------------------------------------------##
 
+class Config(dict):
+    def __init__(self, yaml_file="configs/simtemplate.yaml"):
+        print("Loading config from ", yaml_file)
+        self.yaml_file = yaml_file
+        self.from_yaml(self.yaml_file)
+
+    def __repr__(self):
+        return yaml.dump(self)
+
+    def __str__(self):
+        return yaml.dump(self)
+
+    @property
+    def name(self):
+        yamlnamedotyaml = os.path.basename(self.yaml_file)
+        yamlname = os.path.splitext(yamlnamedotyaml)[0]
+        return yamlname
+
+    @property
+    def outdir(self):
+        return os.path.join(os.environ["LUSEE_OUTPUT_DIR"], self.name)
+
+    def from_yaml(self, yaml_file):
+        with open(yaml_file) as f:
+            yml = yaml.safe_load(f)
+        self.update(yml)
+        return self
+
+    def make_ulsa_config(self):
+        print("Making ULSA config")
+        self["sky"] = {"file": "ULSA_32_ddi_smooth.fits"}
+        self["simulation"][
+            "output"
+        ] = f"{self.name}/ulsa.fits"  # $LUSEE_OUTPUT_DIR + self.name + "/ulsa.fits"
+        return self
+
+    def make_da_config(self):
+        print("Making DA config")
+        self["sky"] = {
+            "type": "DarkAges",
+            "scaled": True,
+            "nu_min": 16.4,
+            "nu_rms": 14.0,
+            "A": 0.04,
+        }
+        self["simulation"][
+            "output"
+        ] = f"{self.name}/da.fits"  # $LUSEE_OUTPUT_DIR + self.name + "/da.fits"
+        return self
+
+    def make_cmb_config(self):
+        print("Making CMB config")
+        self["sky"] = {"type": "CMB", "Tcmb": 2.73}
+        self["simulation"][
+            "output"
+        ] = f"{self.name}/cmb.fits"  # $LUSEE_OUTPUT_DIR + self.name + "/cmb.fits"
+        return self
+
+    def save(self, outname):
+        print("saving config to", outname)
+        with open(outname, "wb") as f:
+            pickle.dump(self, f)
+
 
 class SkyAnalyzer:
     def __init__(self):
@@ -475,66 +538,3 @@ class Signals(SimSignal):
             print("done")
         return self.sigs
 
-
-class Config(dict):
-    def __init__(self, yaml_file="configs/simtemplate.yaml"):
-        print("Loading config from ", yaml_file)
-        self.yaml_file = yaml_file
-        self.from_yaml(self.yaml_file)
-
-    def __repr__(self):
-        return yaml.dump(self)
-
-    def __str__(self):
-        return yaml.dump(self)
-
-    @property
-    def name(self):
-        yamlnamedotyaml = os.path.basename(self.yaml_file)
-        yamlname = os.path.splitext(yamlnamedotyaml)[0]
-        return yamlname
-
-    @property
-    def outdir(self):
-        return os.path.join(os.environ["LUSEE_OUTPUT_DIR"], self.name)
-
-    def from_yaml(self, yaml_file):
-        with open(yaml_file) as f:
-            yml = yaml.safe_load(f)
-        self.update(yml)
-        return self
-
-    def make_ulsa_config(self):
-        print("Making ULSA config")
-        self["sky"] = {"file": "ULSA_32_ddi_smooth.fits"}
-        self["simulation"][
-            "output"
-        ] = f"{self.name}/ulsa.fits"  # $LUSEE_OUTPUT_DIR + self.name + "/ulsa.fits"
-        return self
-
-    def make_da_config(self):
-        print("Making DA config")
-        self["sky"] = {
-            "type": "DarkAges",
-            "scaled": True,
-            "nu_min": 16.4,
-            "nu_rms": 14.0,
-            "A": 0.04,
-        }
-        self["simulation"][
-            "output"
-        ] = f"{self.name}/da.fits"  # $LUSEE_OUTPUT_DIR + self.name + "/da.fits"
-        return self
-
-    def make_cmb_config(self):
-        print("Making CMB config")
-        self["sky"] = {"type": "CMB", "Tcmb": 2.73}
-        self["simulation"][
-            "output"
-        ] = f"{self.name}/cmb.fits"  # $LUSEE_OUTPUT_DIR + self.name + "/cmb.fits"
-        return self
-
-    def save(self, outname):
-        print("saving config to", outname)
-        with open(outname, "wb") as f:
-            pickle.dump(self, f)
