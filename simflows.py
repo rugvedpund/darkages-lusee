@@ -356,6 +356,7 @@ class SkyAnalyzer:
         self.cmb.set_comb(comb)
         return self.ulsa.data, self.da.data, self.cmb.data
 
+
     def subsample(self, n):
         print(
             "subsampling from (nfreq,ndata)",
@@ -401,21 +402,25 @@ class SimData:
         just like lusee.Data"""
         return self.sim[request]
 
+    def get_comb(self,comb):
+        return self.sim[:,comb,:].T # (nfreqs, ntimes)
+
     def set_comb(self, comb):
         """comb can be 'all', 'auto', or comb of the form '00R' etc."""
         ntimes, ncombs, nfreqs = self.sim.data.shape
         if comb == "all":
             raise NotImplementedError
         if comb == "auto":
-            self.data = np.hstack(
-                [
-                    self.sim[:, "00R", :],
-                    self.sim[:, "11R", :],
-                    self.sim[:, "22R", :],
-                    self.sim[:, "33R", :],
-                ]
-            ).T
-            return self.data  # (4*nfreqs, ntimes)
+            raise NotImplementedError
+            # self.data = np.hstack(
+            #     [
+            #         self.sim[:, "00R", :],
+            #         self.sim[:, "11R", :],
+            #         self.sim[:, "22R", :],
+            #         self.sim[:, "33R", :],
+            #     ]
+            # ).T
+            # return self.data  # (4*nfreqs, ntimes)
         if simutils.is_comb(comb):
             self.data = self.sim[:, comb, :].T
             return self.data  # (nfreqs, ntimes)
@@ -492,6 +497,10 @@ class Foregrounds(SimForeground):
         print("initializing combined foregrounds..")
         self.fgs = [SimForeground(path) for path in fgpaths]
         # self.fgs = self.load_parallel(fgpaths)
+
+    def get_comb(self,comb):
+        for fg in self.fgs:
+            fg.data = fg.get_comb(comb)
 
     def set_comb(self, comb):
         for fg in self.fgs:
