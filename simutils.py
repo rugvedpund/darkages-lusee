@@ -2,10 +2,193 @@ import lusee
 import numpy as np
 import matplotlib as mpl
 import matplotlib.pyplot as plt
-import matplotlib.colors as mcolors
+# import matplotlib.colors as mcolors
 import argparse
 import seaborn as sns
 import pandas as pd
+import yaml
+import os
+import xarray as xr
+import tensorly as tl
+
+##---------------------------------------------------------------------------##
+
+
+class Config(dict):
+    def __init__(self, yaml_file="configs/simtemplate.yaml"):
+        print("Loading config from ", yaml_file)
+        self.yaml_file = yaml_file
+        self.from_yaml(self.yaml_file)
+
+    def __repr__(self):
+        return yaml.dump(self)
+
+    def __str__(self):
+        return yaml.dump(self)
+
+    @property
+    def name(self):
+        yamlnamedotyaml = os.path.basename(self.yaml_file)
+        yamlname = os.path.splitext(yamlnamedotyaml)[0]
+        return yamlname
+
+    @property
+    def outdir(self):
+        return os.path.join(os.environ["LUSEE_OUTPUT_DIR"], self.name)
+
+    def from_yaml(self, yaml_file):
+        with open(yaml_file) as f:
+            yml = yaml.safe_load(f)
+        self.update(yml)
+        return self
+
+    def make_ulsa_config(self):
+        print("Making ULSA config")
+        self["sky"] = {"file": "ULSA_32_ddi_smooth.fits"}
+        self["simulation"][
+            "output"
+        ] = f"{self.name}/ulsa.fits"  # $LUSEE_OUTPUT_DIR + self.name + "/ulsa.fits"
+        return self
+
+    def make_da_config(self):
+        print("Making DA config")
+        self["sky"] = {
+            "type": "DarkAges",
+            "scaled": True,
+            "nu_min": 16.4,
+            "nu_rms": 14.0,
+            "A": 0.04,
+        }
+        self["simulation"][
+            "output"
+        ] = f"{self.name}/da.fits"  # $LUSEE_OUTPUT_DIR + self.name + "/da.fits"
+        return self
+
+    def make_cmb_config(self):
+        print("Making CMB config")
+        self["sky"] = {"type": "CMB", "Tcmb": 2.73}
+        self["simulation"][
+            "output"
+        ] = f"{self.name}/cmb.fits"  # $LUSEE_OUTPUT_DIR + self.name + "/cmb.fits"
+        return self
+
+    def save(self, outname):
+        print("saving config to", outname)
+        with open(outname, "wb") as f:
+            pickle.dump(self, f)
+
+
+@xr.register_dataarray_accessor("tensor")
+class SimTensorAccessor:
+    def __init__(self, xarray_obj):
+        self._obj = xarray_obj
+
+    def unfold(self, dim: str):
+        data = self._obj.data
+        modeidx = self._obj.dims.index(dim)
+        unfolded = tl.unfold(data, modeidx)
+        return xr.DataArray(
+            unfolded,
+            coords={f"{dim}": self._obj[dim], "mode": np.arange(unfolded.shape[1])},
+            dims=[dim, "mode"],
+        )
+
+    def multi_mode_dot(self, factors, modes):
+        data = self._obj.data
+        return tl.tenalg.multi_mode_dot(data, factors, modes)
+
+    def svd(self):
+        assert self._obj.ndim == 2, "Only 2D arrays are supported for SVD"
+        return self._obj.linalg.svd(dims=self._obj.dims, full_matrices=False)
+
+
+@xr.register_dataarray_accessor("luseeDataLoader")
+class LuseeDataLoaderAccessor:
+    def from_luseeData(self, luseeData: lusee.Data, name: str = "luseeData"):
+        self.luseeData = luseeData  # (times, combs, freqs)
+        assert self.luseeData.data.shape[1] == 16
+        self.freqs = xr.DataArray(self.luseeData.freq, dims="freqs")
+        self.times = xr.DataArray(np.arange(self.luseeData.Ntimes), dims="times")
+        self.combs = xr.DataArray(combs(nbeams=4), dims="combs")
+        self._obj = xr.DataArray(
+            self.luseeData.data,
+            coords={"times": self.times, "combs": self.combs, "freqs": self.freqs},
+            dims=["times", "combs", "freqs"],
+            name=name,
+        )
+        return self._obj
+
+    def __init__(self, xarray_obj):
+        self._obj = xarray_obj
+
+
+@xr.register_dataset_accessor("configLoader")
+class ConfigLoaderAccessor:
+    def from_config(self, config: Config):
+        ulsapath = config.outdir + "/ulsa.fits"
+        dapath = config.outdir + "/da.fits"
+        cmbpath = config.outdir + "/cmb.fits"
+        self.ulsa = xr.DataArray().luseeDataLoader.from_luseeData(
+            lusee.Data(ulsapath), name="ulsa"
+        )
+        self.da = xr.DataArray().luseeDataLoader.from_luseeData(
+            lusee.Data(dapath), name="da"
+        )
+        self.cmb = xr.DataArray().luseeDataLoader.from_luseeData(
+            lusee.Data(cmbpath), name="cmb"
+        )
+        self._obj = xr.Dataset(
+            data_vars={"ulsa": self.ulsa, "da": self.da, "cmb": self.cmb}
+        )
+        return self._obj
+
+    def __init__(self, xarray_obj):
+        self._obj = xarray_obj
+
+
+@xr.register_dataset_accessor("argsLoader")
+class LuseeAccessor:
+    def from_args(self, args):
+        configpaths = args.configs
+        datasets = []
+        angles = []
+        for path in configpaths:
+            config = Config(path)
+            angles.append(config["beam_config"]["common_beam_angle"])
+            simtensor = xr.Dataset().configLoader.from_config(config)
+            datasets.append(simtensor)
+        self.datasets = datasets
+        self.angles = xr.DataArray(angles, dims="angles")
+        self._obj = xr.concat(self.datasets, dim=self.angles)
+        return self._obj
+
+    def __init__(self, xarray_obj):
+        self._obj = xarray_obj
+
+
+class SimTensor:
+    def __init__(self):
+        self.tensor = None
+    def from_luseeData(self, luseeData: lusee.Data, name: str = "luseeData"):
+        self.tensor = xr.DataArray().luseeDataLoader.from_luseeData(luseeData, name)
+        return self
+    def from_config(self, config: Config):
+        self.tensor = xr.Dataset().configLoader.from_config(config)
+        return self
+    def from_args(self, args):
+        self.tensor = xr.Dataset().argsLoader.from_args(args)
+        return self
+
+##---------------------------------------------------------------------------##
+
+# class MapTensor:
+#     def __init__(self):
+#         self.tensor = None
+#     def from
+#
+#
+#
+##---------------------------------------------------------------------------##
 
 
 def timeit(func):
@@ -87,18 +270,20 @@ def all_combs(n):
                 combs.append(f"{i}{j}I")
     return combs
 
+
 def get_combs_list(comb):
     if comb == "auto":
-        return ["00R","11R","22R","33R"]
+        return ["00R", "11R", "22R", "33R"]
     if comb == "all":
         return combs(4)
     if comb == "crossimag":
-        return ["01I","02I","03I","12I","13I","23I"]
+        return ["01I", "02I", "03I", "12I", "13I", "23I"]
     if comb == "crossreal":
-        return ["01R","02R","03R","12R","13R","23R"]
+        return ["01R", "02R", "03R", "12R", "13R", "23R"]
     if is_comb(comb):
         return [comb]
     raise ValueError(f"comb {comb} is not valid")
+
 
 def plt_waterfall(D, comb, ax=None, **kwargs):
     if ax is None:
@@ -251,19 +436,25 @@ def sns_pairplot_addVectors(
 ):
     label = kwargs.get("label", None)
     color = kwargs.get("color", "k")
-    amp = np.linspace(0,1000,num=100)
+    amp = np.linspace(0, 1000, num=100)
     base = ulsa_norm_pmean + sig_norm_pmean
     a0 = np.linalg.norm(sig_norm_pmean)
     unit_sig = sig_norm_pmean / a0
-    vec = base[:,None] - unit_sig[:,None] * amp[None,:]
+    vec = base[:, None] - unit_sig[:, None] * amp[None, :]
     for yidx, ymode in enumerate(eigmodes):
         for xidx, xmode in enumerate(eigmodes):
             if xidx != yidx:
                 ax = pairplt.axes[yidx, xidx]
-                xlim,ylim = ax.get_xlim(), ax.get_ylim()
+                xlim, ylim = ax.get_xlim(), ax.get_ylim()
                 ax.plot(base[xmode], base[ymode], "o", color=color, label=label)
                 ax.plot(vec[xmode], vec[ymode], color=color, label=label)
-                ax.plot(ulsa_norm_pmean[xmode], ulsa_norm_pmean[ymode], "d", color="C1", label="mean ulsa")
+                ax.plot(
+                    ulsa_norm_pmean[xmode],
+                    ulsa_norm_pmean[ymode],
+                    "d",
+                    color="C1",
+                    label="mean ulsa",
+                )
                 ax.set_xlim(xlim)
                 ax.set_ylim(ylim)
     return pairplt

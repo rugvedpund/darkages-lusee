@@ -12,7 +12,7 @@ import numpy as np
 """
 This script is used to run the simulation using the configuration file.
 1. yaml file is passed as a command line argument, default luseepy format for ulsa map
-2. loaded into simflows.Config object. create corresponding config objects for ulsa, da, cmb
+2. loaded into simutils.Config object. create corresponding config objects for ulsa, da, cmb
 3. run all three simulations using the config, SimDriver object
 4. save all three fits outputs into a new dir in outputs/
 """
@@ -23,13 +23,13 @@ if len(sys.argv) < 2:
     sys.exit(1)
 yaml_file = sys.argv[1]
 
-config = simflows.Config(yaml_file)
+config = simutils.Config(yaml_file)
 
-ulsaconfig = simflows.Config(yaml_file).make_ulsa_config()
+ulsaconfig = simutils.Config(yaml_file).make_ulsa_config()
 
-daconfig = simflows.Config(yaml_file).make_da_config()
+daconfig = simutils.Config(yaml_file).make_da_config()
 
-cmbconfig = simflows.Config(yaml_file).make_cmb_config()
+cmbconfig = simutils.Config(yaml_file).make_cmb_config()
 
 print(f"Output directory: {config.outdir}")
 if not os.path.exists(config.outdir):
@@ -50,17 +50,17 @@ cmbsim.run()
 
 # amp = np.logspace(np.log10(0.01),np.log10(100),10)
 # for a in amp:
-#     config = simflows.Config(yaml_file)
+#     config = simutils.Config(yaml_file)
 #     cfg_name = f"amp{a:1.1e}"
 
-#     ulsaconfig = simflows.Config(yaml_file).make_ulsa_config()
+#     ulsaconfig = simutils.Config(yaml_file).make_ulsa_config()
 #     ulsaconfig["simulation"]["output"] = f"{cfg_name}/ulsa.fits"
 
-#     daconfig = simflows.Config(yaml_file).make_da_config()
+#     daconfig = simutils.Config(yaml_file).make_da_config()
 #     daconfig["sky"]["A"] *= float(a)
 #     daconfig["simulation"]["output"] = f"{cfg_name}/da.fits"
 
-#     cmbconfig = simflows.Config(yaml_file).make_cmb_config()
+#     cmbconfig = simutils.Config(yaml_file).make_cmb_config()
 #     cmbconfig["sky"]["Tcmb"] *= float(a)
 #     cmbconfig["simulation"]["output"] = f"{cfg_name}/cmb.fits"
 
