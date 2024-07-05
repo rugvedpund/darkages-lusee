@@ -43,7 +43,7 @@ Fig below shows a waterfall of a single antenna
 combination, where the x-axis is the time, the y-axis is the frequency,
 and the colorbar is the amplitude of the real visibility in this case.
 
-[[waterfall.pdf]]
+![[waterfall.pdf]]
 
 ## Multiple Antenna Combinations
 
