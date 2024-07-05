@@ -2,26 +2,26 @@
 
 In multilinear algebra, an abstract tensor
 $\mathcal{A} \in \mathbb{C}^{I_1,...,I_M}$ is an $M-$dimensional
-array, where \(M\) is the number of modes and the order of the tensor.
+array, where $M$ is the number of modes and the order of the tensor.
 
 The standard m-mode flattening of $\mathcal{A}$ is defined as the
-matrix \(\mathcal{A}_{(m)}\), whose left index is the $m-$th mode of
-\(\mathcal{A}\) and columns are indexed by the remaining modes of
-\(\mathcal{A}\). Let \(\mathbb{U}_m \in \mathbb{C}^{I_m \times I_m}\) be
+matrix $\mathcal{A}_{(m)}$, whose left index is the $m-$th mode of
+$\mathcal{A}$ and columns are indexed by the remaining modes of
+$\mathcal{A}\). Let \(\mathbb{U}_m \in \mathbb{C}^{I_m \times I_m}$ be
 a unitary matrix containing the basis of the left singular vectors of
-\(\mathcal{A}_{(m)}\), such that the columns of \(\mathbb{U}_m\) are the
-left singular vectors of \(\mathcal{A}_{(m)}\).
+$\mathcal{A}_{(m)}\), such that the columns of \(\mathbb{U}_m$ are the
+left singular vectors of $\mathcal{A}_{(m)}$.
 
 By properties of multi-linear algebra, we have \[
     \mathcal{A} &= \mathcal{A} \times (\rm{id}_{I_1},\rm{id}_{I_2},...,\rm{id}_{I_M}) \\
                 &= \mathcal{A} \times (U_1U_1^\dagger, U_2U_2^\dagger,...,U_MU_M^\dagger) \\
                 &= \mathcal{A} \times (U_1, U_2,...,U_M) \times (U_1^\dagger, U_2^\dagger,...,U_M^\dagger) \\
                 &= \mathcal{S} \times (U_1, U_2,...,U_M)\] where
-\(\mathcal{S} = \mathcal{A} \times (U_1^\dagger, U_2^\dagger,...,U_M^\dagger)\)
-is the core tensor of \(\mathcal{A}\).
+$\mathcal{S} = \mathcal{A} \times (U_1^\dagger, U_2^\dagger,...,U_M^\dagger)$
+is the core tensor of $\mathcal{A}$.
 
 This defines the Higher Order Singular Value Decomposition (HOSVD) of a
-tensor \(\mathcal{A}\), which is a generalization of the matrix SVD to
+tensor $\mathcal{A}$, which is a generalization of the matrix SVD to
 higher order tensors. The above construction shows that every tensor has
 a HOSVD.
 
