@@ -13,12 +13,12 @@ $\mathcal{A}_{(m)}\), such that the columns of \(\mathbb{U}_m$ are the
 left singular vectors of $\mathcal{A}_{(m)}$.
 
 By properties of multi-linear algebra, we have 
-$$\begin{equation}
+\[
     \mathcal{A} &= \mathcal{A} \times (\rm{id}_{I_1},\rm{id}_{I_2},...,\rm{id}_{I_M}) \\
                 &= \mathcal{A} \times (U_1U_1^\dagger, U_2U_2^\dagger,...,U_MU_M^\dagger) \\
                 &= \mathcal{A} \times (U_1, U_2,...,U_M) \times (U_1^\dagger, U_2^\dagger,...,U_M^\dagger) \\
                 &= \mathcal{S} \times (U_1, U_2,...,U_M)
-\end{equation}$$
+\]
 
 
 where $\mathcal{S} = \mathcal{A} \times (U_1^\dagger, U_2^\dagger,...,U_M^\dagger)$
