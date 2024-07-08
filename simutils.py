@@ -10,6 +10,7 @@ import yaml
 import os
 import xarray as xr
 import tensorly as tl
+import fitsio
 
 ##---------------------------------------------------------------------------##
 
@@ -78,29 +79,15 @@ class Config(dict):
             pickle.dump(self, f)
 
 
-@xr.register_dataarray_accessor("tensor")
-class SimTensorAccessor:
+@xr.register_dataarray_accessor("FITSLoader")
+class FITSLoaderAccessor:
+    def from_fits(self, fitspath: str):
+        fits = fitsio.read(fitspath)
+        nfreq, npix = fits.shape
+        self._obj = xr.DataArray(fits, coords={"freqs":np.linspace(1,50,num=nfreq),"pixels":np.arange(npix)})
+        return self._obj
     def __init__(self, xarray_obj):
         self._obj = xarray_obj
-
-    def unfold(self, dim: str):
-        data = self._obj.data
-        modeidx = self._obj.dims.index(dim)
-        unfolded = tl.unfold(data, modeidx)
-        return xr.DataArray(
-            unfolded,
-            coords={f"{dim}": self._obj[dim], "mode": np.arange(unfolded.shape[1])},
-            dims=[dim, "mode"],
-        )
-
-    def multi_mode_dot(self, factors, modes):
-        data = self._obj.data
-        return tl.tenalg.multi_mode_dot(data, factors, modes)
-
-    def svd(self):
-        assert self._obj.ndim == 2, "Only 2D arrays are supported for SVD"
-        return self._obj.linalg.svd(dims=self._obj.dims, full_matrices=False)
-
 
 @xr.register_dataarray_accessor("luseeDataLoader")
 class LuseeDataLoaderAccessor:
@@ -181,13 +168,13 @@ class SimTensor:
 
 ##---------------------------------------------------------------------------##
 
-# class MapTensor:
-#     def __init__(self):
-#         self.tensor = None
-#     def from
-#
-#
-#
+class MapTensor:
+    def __init__(self):
+        self.tensor = None
+    def from_fits(self, fitsfile: str = "~/Files/LuSEE/simflows/ulsa.fits"):
+        self.tensor = xr.DataArray().FITSLoader.from_fits(fitsfile)
+        return self
+
 ##---------------------------------------------------------------------------##
 
 
