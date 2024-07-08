@@ -1,5 +1,7 @@
-Introduction to Higher Order Singular Value Decomposition
-=========================================================
+* Introduction to Higher Order Singular Value Decomposition
+  :PROPERTIES:
+  :CUSTOM_ID: introduction-to-higher-order-singular-value-decomposition
+  :END:
 
 In multilinear algebra, an abstract tensor
 $\mathcal{A} \in \mathbb{C}^{I_1,...,I_M}$ is an $M-$dimensional array,
@@ -27,11 +29,15 @@ tensor $\mathcal{A}$, which is a generalization of the matrix SVD to
 higher order tensors. The above construction shows that every tensor has
 a HOSVD.
 
-LuSEE-Night Simulation Products
-===============================
+* LuSEE-Night Simulation Products
+  :PROPERTIES:
+  :CUSTOM_ID: lusee-night-simulation-products
+  :END:
 
-Single Waterfall
-----------------
+** Single Waterfall
+   :PROPERTIES:
+   :CUSTOM_ID: single-waterfall
+   :END:
 
 The fundamental data product of simulations for LuSEE-Night are the
 waterfalls, which are 2D arrays of complex visibilities, indexed by the
@@ -39,18 +45,19 @@ time and frequency. The waterfalls are generated for a single antenna
 combination, and the simulation outputs are indexed by the time,
 frequency, and antenna combination.
 
-Fig.[1](#fig:waterfall){reference-type="ref" reference="fig:waterfall"}
-shows a waterfall of a single antenna combination, where the x-axis is
-the time, the y-axis is the frequency, and the colorbar is the amplitude
-of the real visibility in this case.
+Fig.[[#fig:waterfall][1]] shows a waterfall of a single antenna
+combination, where the x-axis is the time, the y-axis is the frequency,
+and the colorbar is the amplitude of the real visibility in this case.
 
-![Waterfall of a single antenna combination
-[\[fig:waterfall\]]{#fig:waterfall
-label="fig:waterfall"}](figures/waterfall.pdf){#fig:waterfall
-width="50%"}
+#+CAPTION: Waterfall of a single antenna combination [fig:waterfall]
+[[file:figures/waterfall.pdf]]
 
-Multiple Antenna Combinations
------------------------------
+** Multiple Antenna Combinations
+   :PROPERTIES:
+   :CUSTOM_ID: multiple-antenna-combinations
+   :END:
 
-Turntable Rotations
--------------------
+** Turntable Rotations
+   :PROPERTIES:
+   :CUSTOM_ID: turntable-rotations
+   :END:
