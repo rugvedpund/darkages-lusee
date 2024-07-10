@@ -1,16 +1,18 @@
-import lusee
-import numpy as np
-import matplotlib as mpl
-import matplotlib.pyplot as plt
 # import matplotlib.colors as mcolors
 import argparse
-import seaborn as sns
-import pandas as pd
-import yaml
 import os
-import xarray as xr
-import tensorly as tl
+
 import fitsio
+import ipdb
+import lusee
+import matplotlib as mpl
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+import seaborn as sns
+import tensorly as tl
+import xarray as xr
+import yaml
 
 ##---------------------------------------------------------------------------##
 
@@ -152,31 +154,43 @@ class LuseeAccessor:
     def __init__(self, xarray_obj):
         self._obj = xarray_obj
 
+@xr.register_dataset_accessor("mollview")
+class MollviewAccessor:
+    # FIX: this exists only because xr.plot.Facedgrid.map needs a 'name' argument.. stupid
+    def __init__(self, xarray_obj):
+        self._obj = xarray_obj
+
+    def plot(self, name: str, sel: dict() = dict(), **kwargs):
+        g = xr.plot.FacetGrid(self._obj.sel(**sel), **kwargs)
+        g.map(self.mollview, name)  #:
+        return g
+
+    def mollview(self, x):
+        return hp.mollview(x, hold=True, title="") # NOTE: maybe title=None
+
+# @xr.register_dataset_accessor("waterfall")
+# class WaterfallAccessor:
+#     def plot(self, name: str, sel: dict() = dict(), **kwargs):
+#         g = xr.plot.FacetGrid(self._obj.sel(**sel), **kwargs)
+#         g.map(self.waterfall, name)  #:
+#         return g
+#     def waterfall(self,x):
+#         pass
 
 class SimTensor:
     def __init__(self):
         self.tensor = None
     def from_luseeData(self, luseeData: lusee.Data, name: str = "luseeData"):
         self.tensor = xr.DataArray().luseeDataLoader.from_luseeData(luseeData, name)
-        return self
+        return self.tensor
     def from_config(self, config: Config):
         self.tensor = xr.Dataset().configLoader.from_config(config)
-        return self
+        return self.tensor
     def from_args(self, args):
         self.tensor = xr.Dataset().argsLoader.from_args(args)
-        return self
+        return self.tensor
 
 ##---------------------------------------------------------------------------##
-
-class MapTensor:
-    def __init__(self):
-        self.tensor = None
-    def from_fits(self, fitsfile: str = "~/Files/LuSEE/simflows/ulsa.fits"):
-        self.tensor = xr.DataArray().FITSLoader.from_fits(fitsfile)
-        return self
-
-##---------------------------------------------------------------------------##
-
 
 def timeit(func):
     import time
