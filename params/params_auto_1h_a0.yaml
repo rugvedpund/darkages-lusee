@@ -1,0 +1,8 @@
+sky:
+  config_paths:
+  - configs/a0_dt3600.yaml
+  comb: auto
+  subsample: 1
+
+flow:
+  path: flows/auto_1h_a0.simflow
