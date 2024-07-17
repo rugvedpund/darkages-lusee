@@ -89,6 +89,10 @@ tensor246["corexUpxUf"] = tensor246["core"] @ Up @ Uf
 tensor246["corexUpxUsxUf"] = tensor246["core"] @ Up @ Us @ Uf
 print("tensor246 ready")
 
+
+tensor246 = xr.open_dataset("netcdf/map_hosvd_nomean_246nodiff.nc")
+
+ipdb.set_trace()
 # ipdb.set_trace()
 
 # # make projected plots
@@ -120,71 +124,70 @@ print("tensor246 ready")
 # plt.show()
 
 
-# accesses SimTensorAccessor
-print("creating xarray..")
-# WARN: this changes results
-# smooth_ulsa246 = np.array([smoothing[0], smoothing[1], smoothing[2]])
-smooth_ulsa246 = np.array(
-    [smoothing[0], smoothing[1] - smoothing[0], smoothing[2] - smoothing[1]]
-)
-xarr = xr.DataArray(
-    smooth_ulsa246, coords=[sigmas, freqs, pixels], dims=["sigma", "freq", "pix"]
-)
-# WARN: this changes results
-xarr = xarr - xarr.mean(dim="pix")
-tensor = xr.Dataset({"ulsa": xarr})
-tensor["ulsa2"] = (
-    tensor["ulsa"].sel(sigma=[2]).einops.rearrange("(sigma freq)=sigma_freq2 pix")
-)
-tensor["ulsa24"] = (
-    tensor["ulsa"].sel(sigma=[2, 4]).einops.rearrange("(sigma freq)=sigma_freq24 pix")
-)
-tensor["ulsa246"] = (
-    tensor["ulsa"]
-    .sel(sigma=[2, 4, 6])
-    .einops.rearrange("(sigma freq)=sigma_freq246 pix")
-)
-tensor["da2"] = t21da(tensor["ulsa2"].sigma_freq2)
-tensor["da24"] = t21da(tensor["ulsa24"].sigma_freq24)
-tensor["da246"] = t21da(tensor["ulsa246"].sigma_freq246)
-tensor["cmb2"] = cmb(tensor["ulsa2"].sigma_freq2)
-tensor["cmb24"] = cmb(tensor["ulsa24"].sigma_freq24)
-tensor["cmb246"] = cmb(tensor["ulsa246"].sigma_freq246)
+# # accesses SimTensorAccessor
+# print("creating xarray..")
+# # WARN: this changes results
+# # smooth_ulsa246 = np.array([smoothing[0], smoothing[1], smoothing[2]])
+# smooth_ulsa246 = np.array(
+#     [smoothing[0], smoothing[1] - smoothing[0], smoothing[2] - smoothing[1]]
+# )
+# xarr = xr.DataArray(
+#     smooth_ulsa246, coords=[sigmas, freqs, pixels], dims=["sigma", "freq", "pix"]
+# )
+# # WARN: this changes results
+# xarr = xarr - xarr.mean(dim="pix")
+# tensor = xr.Dataset({"ulsa": xarr})
+# tensor["ulsa2"] = (
+#     tensor["ulsa"].sel(sigma=[2]).einops.rearrange("(sigma freq)=sigma_freq2 pix")
+# )
+# tensor["ulsa24"] = (
+#     tensor["ulsa"].sel(sigma=[2, 4]).einops.rearrange("(sigma freq)=sigma_freq24 pix")
+# )
+# tensor["ulsa246"] = (
+#     tensor["ulsa"]
+#     .sel(sigma=[2, 4, 6])
+#     .einops.rearrange("(sigma freq)=sigma_freq246 pix")
+# )
+# tensor["da2"] = t21da(tensor["ulsa2"].sigma_freq2)
+# tensor["da24"] = t21da(tensor["ulsa24"].sigma_freq24)
+# tensor["da246"] = t21da(tensor["ulsa246"].sigma_freq246)
+# tensor["cmb2"] = cmb(tensor["ulsa2"].sigma_freq2)
+# tensor["cmb24"] = cmb(tensor["ulsa24"].sigma_freq24)
+# tensor["cmb246"] = cmb(tensor["ulsa246"].sigma_freq246)
 
 # # plot sigmas and freqs
 # tensor.mollview.plot('ulsa',sel=dict(freq=[10,20,30,40]),col='sigma',row='freq',sharex=False,sharey=False)
 # g.fig.suptitle(r'ULSA: 10,20,30,40MHz and $2^\circ, 4^\circ, 6^\circ$ beams')
 # plt.show()
 
-# calculate svd
-print("svd..")
-svd = xr.Dataset()
-for map in ["2", "24", "246"]:
-    ulsamap, p_ulsamap, p_damap, mapdim = (
-        f"ulsa{map}",
-        f"p_ulsa{map}",
-        f"p_da{map}",
-        f"sigma_freq{map}",
-    )
-    p_cmbmap = f"p_cmb{map}"
-    U, S, Vt = tensor[ulsamap].linalg.svd(dims=[mapdim, "pix"], full_matrices=False)
-    svd["ulsa" + map] = xr.DataArray({"U": U, "S": S, "Vt": Vt})
-    tensor[p_ulsamap] = linalg.matmul(
-        U, tensor[ulsamap], dims=[[f"{mapdim}2", mapdim], [mapdim, "pix"]]
-    )
-    tensor[p_ulsamap] = U.T @ tensor[ulsamap]
-    tensor[p_damap] = U.T @ tensor["da" + map]
-    tensor[p_cmbmap] = U.T @ tensor["cmb" + map]
-    tensor["p_rms" + map] = np.sqrt(tensor["p_ulsa" + map].var(dim="pix"))
-    tensor["norm_pulsamean" + map] = (
-        tensor["p_ulsa" + map].mean(dim="pix") / tensor["p_rms" + map]
-    )
-    tensor["norm_pulsa" + map] = tensor["p_ulsa" + map] / tensor["p_rms" + map]
-    tensor["norm_pda" + map] = tensor["p_da" + map] / tensor["p_rms" + map]
-    tensor["norm_pcmb" + map] = tensor["p_cmb" + map] / tensor["p_rms" + map]
-print("tensor ready")
+# # calculate svd
+# print("svd..")
+# svd = xr.Dataset()
+# for map in ["2", "24", "246"]:
+#     ulsamap, p_ulsamap, p_damap, mapdim = (
+#         f"ulsa{map}",
+#         f"p_ulsa{map}",
+#         f"p_da{map}",
+#         f"sigma_freq{map}",
+#     )
+#     p_cmbmap = f"p_cmb{map}"
+#     U, S, Vt = tensor[ulsamap].linalg.svd(dims=[mapdim, "pix"], full_matrices=False)
+#     svd["ulsa" + map] = xr.DataArray({"U": U, "S": S, "Vt": Vt})
+#     tensor[p_ulsamap] = linalg.matmul(
+#         U, tensor[ulsamap], dims=[[f"{mapdim}2", mapdim], [mapdim, "pix"]]
+#     )
+#     tensor[p_ulsamap] = U.T @ tensor[ulsamap]
+#     tensor[p_damap] = U.T @ tensor["da" + map]
+#     tensor[p_cmbmap] = U.T @ tensor["cmb" + map]
+#     tensor["p_rms" + map] = np.sqrt(tensor["p_ulsa" + map].var(dim="pix"))
+#     tensor["norm_pulsamean" + map] = (
+#         tensor["p_ulsa" + map].mean(dim="pix") / tensor["p_rms" + map]
+#     )
+#     tensor["norm_pulsa" + map] = tensor["p_ulsa" + map] / tensor["p_rms" + map]
+#     tensor["norm_pda" + map] = tensor["p_da" + map] / tensor["p_rms" + map]
+#     tensor["norm_pcmb" + map] = tensor["p_cmb" + map] / tensor["p_rms" + map]
+# print("tensor ready")
 
-ipdb.set_trace()
 
 # # save large pairplots
 # # FIX: this does not work, xarray -> numpy -> pandas -> seaborn is stupid
