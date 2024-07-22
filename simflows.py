@@ -1,13 +1,14 @@
 import os
-import sys
 import pickle
-import yaml
+
+import lusee
 import numpy as np
 import scipy
-import lusee
 import simutils
-from sinf import GIS
 import torch
+import yaml
+from sinf import GIS
+
 torch.manual_seed(0)
 
 ##---------------------------------------------------------------------------##

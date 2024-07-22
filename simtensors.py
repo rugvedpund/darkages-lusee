@@ -1,17 +1,20 @@
+# %%
 import ipdb
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
+import seaborn as sns
 import xarray as xr
+from scipy.stats import multivariate_normal
 from xarray_einstats import einops, linalg
 
 import simutils
 
+# %%
+
 log = mpl.colors.LogNorm()
 symlog = mpl.colors.SymLogNorm(linthresh=1e2)
-
-##---------------------------------------------------------------------------##
-
 combmat = [
     "00R",
     "01R",
@@ -52,38 +55,16 @@ comblist = [
 scree_vars = ["eva:f-mode", "mean ulsa", "mean da", "mean cmb", "rms ulsa"]
 
 
-print("loading netcdf tensors..")
-sim = xr.open_dataset("netcdf/sim.nc")
-sim["combs"] = sim["combs"].astype(str)
-tensor = xr.open_dataset("netcdf/sim_hosvd.nc")
-tensor["combs"] = tensor["combs"].astype(str)
-scree = xr.open_dataset("netcdf/sim_scree_pfreq.nc")
-scree["combs"] = scree["combs"].astype(str)
-pscree = xr.open_dataset("netcdf/sim_scree_pall.nc")
-
-
 def logpdf(vec_slice, cov_slice):
     mean = np.zeros_like(vec_slice)
     return multivariate_normal.logpdf(vec_slice, mean=mean, cov=cov_slice)
 
 
-ipdb.set_trace()
-
-ll = xr.apply_ufunc(
-    logpdf,
-    scree["mean ulsa"],
-    tensor["cov_pfreq"],
-    input_core_dims=[["freqs2"], ["freqs2", "freqs2_"]],
-    vectorize=True,
-    output_dtypes=[np.float64],
-)
-
-
 ##---------------------------------------------------------------------------##
-# reload tensors
+# %%
 
-# NOTE: argparser needs something like: python simtensors.py --config configs/a{0..80..10}_dt3600.yaml
-#
+# # NOTE: argparser needs something like: python simtensors.py --config configs/a{0..80..10}_dt3600.yaml
+# #
 # # Load the lusee ulsa sim tensor
 # print("Loading ULSA sim tensor..")
 # parser = simutils.create_parser()
@@ -92,47 +73,69 @@ ll = xr.apply_ufunc(
 # print("  saving as netcdf..")
 # sim.to_netcdf("netcdf/sim.nc")
 
+# %%
+
 # # WARN: when loading netcdf tensor, ensure string coordniates are loaded as strings
 # #
 # print("loading netcdf sim tensor..")
-# sim = xr.open_dataset("netcdf/sim.nc")
+# sim = xr.open_dataset("netcdf/sim.nc", chunks={"times": 50})
+# print(sim)
 # sim["combs"] = sim["combs"].astype(str)
 # ulsa = sim["ulsa"]
 
+# %%
+
 # # WARN: subtracting mean here, changes how some plots look
-# # WARN: xarray svd does not rename dims correctly
+# # BUG: xarray svd does not rename dims correctly, ensure rename core tensor dims to primed indices
 # #
 # print("hosvd..")
 # print("  subtracting mean..")
 # tensor = xr.Dataset({"ulsa": ulsa - ulsa.mean("times")})
 # print("  unfolding..")
-# tensor["f-mode"] = tensor["ulsa"].einops.rearrange("freqs (times angles combs)=tas")
-# tensor["a-mode"] = tensor["ulsa"].einops.rearrange("angles (times freqs combs)=tfs")
-# tensor["c-mode"] = tensor["ulsa"].einops.rearrange("combs (times freqs angles)=tfa")
-# tensor["t-mode"] = tensor["ulsa"].einops.rearrange("times (freqs angles combs)=fac")
+# tensor["a-mode"] = tensor["ulsa"].stack(tfc=("times", "freqs", "combs"))
+# tensor["c-mode"] = tensor["ulsa"].stack(tfa=("times", "freqs", "angles"))
+# tensor["f-mode"] = tensor["ulsa"].stack(tac=("times", "angles", "combs"))
+# tensor["t-mode"] = tensor["ulsa"].stack(fac=("freqs", "angles", "combs"))
 # print("  unfolded svd..")
-# Uf, Sf, _ = tensor["f-mode"].linalg.svd(dims=["freqs", "tas"], full_matrices=False)
-# Ua, Sa, _ = tensor["a-mode"].linalg.svd(dims=["angles", "tfs"], full_matrices=False)
-# Uc, Sc, _ = tensor["c-mode"].linalg.svd(dims=["combs", "tfa"], full_matrices=False)
-# Ut, St, _ = tensor["t-mode"].linalg.svd(dims=["times", "fac"], full_matrices=False)
-# tensor["eig:freqs"] = Uf
-# tensor["eig:angles"] = Ua
-# tensor["eig:combs"] = Uc
-# tensor["eig:times"] = Ut
-# tensor["eva:freqs"] = xr.DataArray(Sf.data, dims=["freqs2"])
-# tensor["eva:angles"] = xr.DataArray(Sa.data, dims=["angles2"])
-# tensor["eva:combs"] = xr.DataArray(Sc.data, dims=["combs2"])
-# tensor["eva:times"] = xr.DataArray(St.data, dims=["times2"])
+# Ua, Sa, _ = np.linalg.svd(tensor["a-mode"], full_matrices=False)
+# Uc, Sc, _ = np.linalg.svd(tensor["c-mode"], full_matrices=False)
+# Uf, Sf, _ = np.linalg.svd(tensor["f-mode"], full_matrices=False)
+# Ut, St, _ = np.linalg.svd(tensor["t-mode"], full_matrices=False)
+# tensor["eig:freqs"] = xr.DataArray(Uf, dims=["freqs", "freqs2"])
+# tensor["eig:angles"] = xr.DataArray(Ua, dims=["angles", "angles2"])
+# tensor["eig:combs"] = xr.DataArray(Uc, dims=["combs", "combs2"])
+# tensor["eig:times"] = xr.DataArray(Ut, dims=["times", "times2"])
+# tensor["eva:freqs"] = xr.DataArray(Sf, dims=["freqs2"])
+# tensor["eva:angles"] = xr.DataArray(Sa, dims=["angles2"])
+# tensor["eva:combs"] = xr.DataArray(Sc, dims=["combs2"])
+# tensor["eva:times"] = xr.DataArray(St, dims=["times2"])
 # print("  calc core and core products..")
-# tensor["core"] = Uf.T @ Ua.T @ Uc.T @ (Ut.T @ tensor["ulsa"])
-# tensor["corexUt"] = tensor["core"] @ Ut
-# tensor["corexUtxUc"] = tensor["core"] @ Ut @ Uc
-# tensor["corexUtxUa"] = tensor["core"] @ Ut @ Ua
-# tensor["corexUtxUf"] = tensor["core"] @ Ut @ Uf
-# tensor["corexUtxUaxUc"] = tensor["core"] @ Ut @ Ua @ Uc
-# tensor["corexUtxUfxUa"] = tensor["core"] @ Ut @ Uf @ Ua
-# tensor["corexUtxUfxUc"] = tensor["core"] @ Ut @ Uf @ Uc
-# tensor["corexUtxUfxUaxUc"] = tensor["core"] @ Ut @ Uf @ Ua @ Uc
+# tensor["core"] = (
+#     tensor["eig:freqs"].T
+#     @ tensor["eig:angles"].T
+#     @ tensor["eig:combs"].T
+#     @ (tensor["eig:times"].T @ tensor["ulsa"])
+# )
+# tensor["corexUt"] = tensor["core"] @ tensor["eig:times"]
+# tensor["corexUtxUc"] = tensor["core"] @ tensor["eig:times"] @ tensor["eig:combs"]
+# tensor["corexUtxUa"] = tensor["core"] @ tensor["eig:times"] @ tensor["eig:angles"]
+# tensor["corexUtxUf"] = tensor["core"] @ tensor["eig:times"] @ tensor["eig:freqs"]
+# tensor["corexUtxUaxUc"] = (
+#     tensor["core"] @ tensor["eig:times"] @ tensor["eig:angles"] @ tensor["eig:combs"]
+# )
+# tensor["corexUtxUfxUa"] = (
+#     tensor["core"] @ tensor["eig:times"] @ tensor["eig:freqs"] @ tensor["eig:angles"]
+# )
+# tensor["corexUtxUfxUc"] = (
+#     tensor["core"] @ tensor["eig:times"] @ tensor["eig:freqs"] @ tensor["eig:combs"]
+# )
+# tensor["corexUtxUfxUaxUc"] = (
+#     tensor["core"]
+#     @ tensor["eig:times"]
+#     @ tensor["eig:freqs"]
+#     @ tensor["eig:angles"]
+#     @ tensor["eig:combs"]
+# )
 # print("calc scree components..")
 # tensor["ulsa_pfreq"] = tensor["eig:freqs"] @ sim["ulsa"]
 # tensor["ulsa_pall"] = (
@@ -143,26 +146,20 @@ ll = xr.apply_ufunc(
 # )
 # tensor["ulsa_nomean_pfreq"] = tensor["eig:freqs"] @ tensor["ulsa"]
 # print("calc covariances..")
-# tensor["cov_pfreq"] = (
-#     linalg.matmul(
-#         tensor["ulsa_nomean_pfreq"],
-#         tensor["ulsa_nomean_pfreq"],
-#         dims=["freqs2", "times", "freqs2"],
-#         out_append="_",
-#     )
-#     / 649
+# tensor["cov_pfreq"] = xr.cov(
+#     tensor["ulsa_nomean_pfreq"],
+#     tensor["ulsa_nomean_pfreq"].rename(dict(freqs2="freqs2_")),
+#     dim=["times"],
 # )
-# tensor["cov_pall"] = (
-#     linalg.matmul(
-#         tensor["ulsa_nomean_pall"],
-#         tensor["ulsa_nomean_pall"],
-#         dims=["freqs2", "times", "freqs2"],
-#         out_append="_",
-#     )
-#     / 649
+# tensor["cov_pall"] = xr.cov(
+#     tensor["ulsa_nomean_pall"],
+#     tensor["ulsa_nomean_pall"].rename(dict(freqs2="freqs2_")),
+#     dim=["times"],
 # )
 # print("saving as netcdf..")
 # tensor.to_netcdf("netcdf/sim_hosvd.nc")
+
+# %%
 
 # # WARN: when loading netcdf tensor, ensure string coordniates are loaded as strings
 # #
@@ -199,11 +196,86 @@ ll = xr.apply_ufunc(
 # print("  saving as netcdf..")
 # pscree.to_netcdf("netcdf/sim_scree_pall.nc")
 
+# %%
+
+print("loading netcdf tensors..")
+sim = xr.open_dataset("netcdf/sim.nc")
+sim["combs"] = sim["combs"].astype(str)
+# tensor = xr.open_dataset("netcdf/sim_hosvd.nc", chunks={"times": 50})
+tensor = xr.open_dataset("netcdf/sim_hosvd.nc")
+tensor["combs"] = tensor["combs"].astype(str)
+tensor["freqs2"] = np.arange(50)
+tensor.load()
+scree = xr.open_dataset("netcdf/sim_scree_pall.nc")
+scree["freqs2"] = np.arange(50)
+# %%
+
+tensor["ulsa_nomean_pall"].sel(combs2=0, angles2=0).plot.pcolormesh(
+    norm=symlog, cmap="viridis"
+)
+plt.show()
+
+# %%
+
+tensor["cov_pall"].sel(combs2=[0], angles2=[0]).plot.imshow(
+    norm=symlog,
+    col="combs2",
+    row="angles2",
+)
+plt.show()
+
+# %%
+
+# f2s = np.arange(50)
+f2s = np.arange(0, 50, 10)
+c2, a2 = 15, 8
+d = np.vstack(
+    [
+        tensor["ulsa_nomean_pall"].sel(freqs2=f2s, combs2=c2, angles2=a2).data.T,
+        scree["mean ulsa"].sel(freqs2=f2s, combs2=c2, angles2=a2).data,
+        scree["mean da"].sel(freqs2=f2s, combs2=c2, angles2=a2).data,
+        scree["mean cmb"].sel(freqs2=f2s, combs2=c2, angles2=a2).data,
+    ]
+)
+indx = ["data"] * 650 + ["mean ulsa", "mean da", "mean cmb"]
+df = pd.DataFrame(d, index=indx).reset_index()
+kwargs = {
+    "markers": [".", "d", "^", "v"],
+    "height": 2,
+    # "vars": "times",
+    "hue": "index",
+    "diag_kind": "hist",
+}
+pairplt = sns.pairplot(df, **kwargs)
+plt.show()
+# plt.savefig("tex/figures/pairplot_pa0_pc0.png")
+
+# %%
+
+
+# %%
+
+##---------------------------------------------------------------------------##
+# calculate tensors and save
+##---------------------------------------------------------------------------##
+
 # scree = xr.open_dataset("netcdf/sim_scree_pfreq.nc")
 # scree["combs"] = scree["combs"].astype(str)
 # pscree = xr.open_dataset("netcdf/sim_scree_pall.nc")
 
 ##---------------------------------------------------------------------------##
+# Plots
+##---------------------------------------------------------------------------##
+
+# # plot frequency covariances
+# tensor["cov_pfreq"].sel(combs=comblist).plot.imshow(
+#     col="combs", col_wrap=4, norm=symlog, cmap="viridis", aspect=2.0, size=2
+# )
+# plt.savefig("tex/figures/cov_pfreq.pdf")
+# tensor["cov_pall"].sel(combs=comblist).plot.imshow(
+#     col="combs", col_wrap=4, norm=symlog, cmap="viridis", aspect=2.0, size=2
+# )
+# plt.savefig("tex/figures/cov_pall.pdf")
 
 # pscree.to_array().sel(variable=scree_vars).plot.line(
 #     row="angles2", col="combs2", hue="variable", yscale="log", size=4, aspect=0.5
@@ -251,5 +323,3 @@ ll = xr.apply_ufunc(
 # )
 # plt.show
 # # plt.savefig('tex/figures/simC00R.pdf')
-
-ipdb.set_trace()

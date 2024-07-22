@@ -239,24 +239,7 @@ def create_parser():
 def combs(nbeams=4):
     if nbeams != 4:
         raise NotImplementedError
-    return [
-        "00R",
-        "01R",
-        "01I",
-        "02R",
-        "02I",
-        "03R",
-        "03I",
-        "11R",
-        "12R",
-        "12I",
-        "13R",
-        "13I",
-        "22R",
-        "23R",
-        "23I",
-        "33R",
-    ]
+    return np.array([ "00R", "01R", "01I", "02R", "02I", "03R", "03I", "11R", "12R", "12I", "13R", "13I", "22R", "23R", "23I", "33R", ])
 
 
 def all_combs(n):
