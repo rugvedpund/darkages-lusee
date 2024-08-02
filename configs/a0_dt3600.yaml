@@ -40,3 +40,4 @@ observation:
 
 simulation:
   cache_transform: lunar_day.pickle  
+  dump_beams: True

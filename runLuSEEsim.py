@@ -2,11 +2,14 @@ import sys
 
 sys.path.append("/home/rugved/Files/LuSEE/luseepy/simulation/driver/")
 
-from run_sim import SimDriver
 import os
 import pickle
-import simflows
+
 import numpy as np
+from run_sim import SimDriver
+
+import simflows
+import simutils
 
 ##---------------------------------------------------------------------------##
 """
