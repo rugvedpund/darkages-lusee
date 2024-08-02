@@ -166,6 +166,7 @@ class MollviewAccessor:
         return g
 
     def mollview(self, x):
+        import healpy as hp
         return hp.mollview(x, hold=True, title="") # NOTE: maybe title=None
 
 # @xr.register_dataset_accessor("waterfall")
