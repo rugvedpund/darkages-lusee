@@ -160,7 +160,7 @@ class MollviewAccessor:
     def __init__(self, xarray_obj):
         self._obj = xarray_obj
 
-    def plot(self, name: str, sel: dict() = dict(), **kwargs):
+    def plot(self, name: str, sel: dict = {}, **kwargs):
         g = xr.plot.FacetGrid(self._obj.sel(**sel), **kwargs)
         g.map(self.mollview, name)  #:
         return g
