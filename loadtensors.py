@@ -72,3 +72,16 @@ simtensor["rms ulsa"] = sim["ulsa"].std("times")
 simtensor["delta ulsa"] = sim["ulsa"] - sim["ulsa"].mean("times")
 
 # %%
+
+
+# %%
+
+import os
+
+for file in os.listdir("netcdf"):
+    print(f"\n\n{file}")
+    xrtensor = xr.open_dataset(f"netcdf/{file}")
+    print(xrtensor)
+
+
+# %%
