@@ -1,0 +1,23 @@
+project:
+  type: book
+
+book:
+  title: "Multi-linear Analysis for LuSEE sims"
+  author: "Rugved Pund"
+  date: today
+  chapters:
+    - index.qmd
+    - intro.qmd
+    - summary.qmd
+    - references.qmd
+
+bibliography: references.bib
+
+format:
+  html:
+    theme: cosmo
+  pdf:
+    documentclass: scrreprt
+
+
+
