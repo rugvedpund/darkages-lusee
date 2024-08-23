@@ -2,13 +2,17 @@ project:
   type: book
   output-dir: ../docs
 
+jupyter: lusee
+
 book:
-  title: "Multi-linear Analysis for LuSEE sims"
+  title: "Forecasting Dark Ages Constraints for LuSEE"
   author: "Rugved Pund"
   date: today
   chapters:
     - index.qmd
-    - intro.qmd
+    - 01_hosvd.qmd
+    - 02_likelihoods.qmd
+    - 03_visibilities.qmd
     - summary.qmd
     - references.qmd
 
@@ -19,6 +23,5 @@ format:
     theme: cosmo
   pdf:
     documentclass: scrreprt
-
 
 

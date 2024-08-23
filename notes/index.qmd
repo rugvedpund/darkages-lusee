@@ -1,5 +1,3 @@
-# Preface {.unnumbered}
+# Introduction {.unnumbered}
 
-This is a Quarto book.
-
-To learn more about Quarto books visit <https://quarto.org/docs/books>.
+Calculate likelihoods for Dark Ages and CMB signal separation, using HOSVD to calculate independent combinations of visibility data. 

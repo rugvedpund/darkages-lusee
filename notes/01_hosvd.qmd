@@ -1,0 +1,13 @@
+---
+# jupyter: lusee
+---
+
+# Higher Order Singular Value Decomposition
+
+Generalization of the usual SVD for tensors. Usual SVD proceeds via the following decomposition $A=USV^{T}$ or in tensor notation,
+$$ 
+A^{\alpha\beta} = U^{\alpha}_{\alpha'} V^{\beta}_{\beta'} S^{\alpha'\beta'} 
+$$
+where each of $U, V$ are the eigenvector matrices of the covariance matrices of the respective indices of $A$, given by the usual $C^{\beta_1\beta_2}=\frac{1}{\sqrt{d_{\alpha}}}A^{\alpha\beta_1}A_{\alpha}^{\beta_2}$ and $C^{\alpha_1\alpha_2}=\frac{1}{\sqrt{d_{\beta}}}A^{\alpha_1\beta}A^{\alpha_2}_{\beta}$
+
+The HOSVD generalizes this to higher order tensors $A^{\alpha\beta\gamma\delta}$, by performing the SVD on each mode of the tensor [@delathauwerMultilinearSingularValue2000]. The decomposition is given by

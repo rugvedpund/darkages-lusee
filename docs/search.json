@@ -2,11 +2,11 @@
   {
     "objectID": "index.html",
     "href": "index.html",
-    "title": "Multi-linear Analysis for LuSEE sims",
+    "title": "Forecasting Dark Ages Constraints for LuSEE",
     "section": "",
-    "text": "Preface\nThis is a Quarto book.\nTo learn more about Quarto books visit https://quarto.org/docs/books.",
+    "text": "Introduction\nCalculate likelihoods for Dark Ages and CMB signal separation, using HOSVD to calculate independent combinations of visibility data.",
     "crumbs": [
-      "Preface"
+      "Introduction"
     ]
   },
   {
@@ -34,9 +34,59 @@
     "href": "references.html",
     "title": "References",
     "section": "",
-    "text": "Knuth, Donald E. 1984. “Literate Programming.” Comput.\nJ. 27 (2): 97–111. https://doi.org/10.1093/comjnl/27.2.97.",
+    "text": "De Lathauwer, Lieven, Bart De Moor, and Joos Vandewalle. 2000. “A\nMultilinear Singular Value\nDecomposition.” SIAM Journal on Matrix Analysis\nand Applications 21 (4): 1253–78. https://doi.org/10.1137/S0895479896305696.",
     "crumbs": [
       "References"
+    ]
+  },
+  {
+    "objectID": "01_likelihoods.html",
+    "href": "01_likelihoods.html",
+    "title": "1  Likelihood Calculation",
+    "section": "",
+    "text": "The HOSVD gives us basis vectors for linear combinations of antenna combinations and common beam angles as follows.\n\nfrom simflows.load import eigs\neigs['eig:combs'].sel(combs2=[0,1,2,3,4]).plot.line(x='combs')\n\n\n\n\n\n\n\n\nFigure 1.1: combination eigenmodes from HOSVD\n\n\n\n\n\neigs['eig:angles'].sel(angles2=[0,1,2,3,4]).plot.line(x='angles')\n\n\n\n\n\n\n\n\nFigure 1.2: angle eigenmodes from HOSVD",
+    "crumbs": [
+      "<span class='chapter-number'>1</span>  <span class='chapter-title'>Likelihood Calculation</span>"
+    ]
+  },
+  {
+    "objectID": "02_visibilities.html",
+    "href": "02_visibilities.html",
+    "title": "2  Visibility Covariances",
+    "section": "",
+    "text": "temp text",
+    "crumbs": [
+      "<span class='chapter-number'>2</span>  <span class='chapter-title'>Visibility Covariances</span>"
+    ]
+  },
+  {
+    "objectID": "02_likelihoods.html",
+    "href": "02_likelihoods.html",
+    "title": "2  Likelihood Calculation",
+    "section": "",
+    "text": "The HOSVD gives us basis vectors for linear combinations of antenna combinations and common beam angles as follows.\n\nfrom simflows.load import eigs\neigs['eig:combs'].sel(combs2=[0,1,2,3,4]).plot.line(x='combs')\n\nloading netcdf tensors..\n\n\n\n\n\n\n\n\n\nFigure 2.1: combination eigenmodes from HOSVD\n\n\n\n\n\neigs['eig:angles'].sel(angles2=[0,1,2,3,4]).plot.line(x='angles')\n\n\n\n\n\n\n\n\nFigure 2.2: angle eigenmodes from HOSVD",
+    "crumbs": [
+      "<span class='chapter-number'>2</span>  <span class='chapter-title'>Likelihood Calculation</span>"
+    ]
+  },
+  {
+    "objectID": "03_visibilities.html",
+    "href": "03_visibilities.html",
+    "title": "3  Visibility Covariances",
+    "section": "",
+    "text": "temp text",
+    "crumbs": [
+      "<span class='chapter-number'>3</span>  <span class='chapter-title'>Visibility Covariances</span>"
+    ]
+  },
+  {
+    "objectID": "01_hosvd.html",
+    "href": "01_hosvd.html",
+    "title": "1  Higher Order Singular Value Decomposition",
+    "section": "",
+    "text": "Generalization of the usual SVD for tensors. Usual SVD proceeds via the following decomposition \\(A=USV^{T}\\) or in tensor notation, \\[\nA^{\\alpha\\beta} = U^{\\alpha}_{\\alpha'} V^{\\beta}_{\\beta'} S^{\\alpha'\\beta'}\n\\] where each of \\(U, V\\) are the eigenvector matrices of the covariance matrices of the respective indices of \\(A\\), given by the usual \\(C^{\\beta_1\\beta_2}=\\frac{1}{\\sqrt{d_{\\alpha}}}A^{\\alpha\\beta_1}A_{\\alpha}^{\\beta_2}\\) and \\(C^{\\alpha_1\\alpha_2}=\\frac{1}{\\sqrt{d_{\\beta}}}A^{\\alpha_1\\beta}A^{\\alpha_2}_{\\beta}\\)\nThe HOSVD generalizes this to higher order tensors \\(A^{\\alpha\\beta\\gamma\\delta}\\), by performing the SVD on each mode of the tensor (De Lathauwer, De Moor, and Vandewalle 2000). The decomposition is given by\n\n\n\n\nDe Lathauwer, Lieven, Bart De Moor, and Joos Vandewalle. 2000. “A Multilinear Singular Value Decomposition.” SIAM Journal on Matrix Analysis and Applications 21 (4): 1253–78. https://doi.org/10.1137/S0895479896305696.",
+    "crumbs": [
+      "<span class='chapter-number'>1</span>  <span class='chapter-title'>Higher Order Singular Value Decomposition</span>"
     ]
   }
 ]

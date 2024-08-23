@@ -1,0 +1,25 @@
+---
+jupyter: lusee
+---
+
+
+# Likelihood Calculation
+
+The HOSVD gives us basis vectors for linear combinations of antenna combinations and common beam angles as follows.
+
+
+```{python}
+#| label: fig-eigcombs
+#| fig-cap: combination eigenmodes from HOSVD
+#| column: margin
+from simflows.load import eigs
+eigs['eig:combs'].sel(combs2=[0,1,2,3,4]).plot.line(x='combs')
+```
+```{python}
+#| label: fig-eigangles
+#| fig-cap: angle eigenmodes from HOSVD
+#| column: margin
+eigs['eig:angles'].sel(angles2=[0,1,2,3,4]).plot.line(x='angles')
+```
+
+
