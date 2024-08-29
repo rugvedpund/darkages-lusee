@@ -3,7 +3,6 @@ import argparse
 import os
 
 import fitsio
-import ipdb
 import lusee
 import matplotlib as mpl
 import matplotlib.pyplot as plt
@@ -58,7 +57,6 @@ comblist = [
 scree_vars = ["rms ulsa", "mean ulsa", "mean da", "mean cmb"]
 
 ##--------------------------------------------------------------------##
-
 
 
 class Config(dict):
@@ -130,10 +128,15 @@ class FITSLoaderAccessor:
     def from_fits(self, fitspath: str):
         fits = fitsio.read(fitspath)
         nfreq, npix = fits.shape
-        self._obj = xr.DataArray(fits, coords={"freqs":np.linspace(1,50,num=nfreq),"pixels":np.arange(npix)})
+        self._obj = xr.DataArray(
+            fits,
+            coords={"freqs": np.linspace(1, 50, num=nfreq), "pixels": np.arange(npix)},
+        )
         return self._obj
+
     def __init__(self, xarray_obj):
         self._obj = xarray_obj
+
 
 @xr.register_dataarray_accessor("luseeDataLoader")
 class LuseeDataLoaderAccessor:
@@ -198,6 +201,7 @@ class LuseeAccessor:
     def __init__(self, xarray_obj):
         self._obj = xarray_obj
 
+
 @xr.register_dataset_accessor("mollview")
 class MollviewAccessor:
     # FIX: this exists only because xr.plot.Facedgrid.map needs a 'name' argument.. stupid
@@ -211,7 +215,9 @@ class MollviewAccessor:
 
     def mollview(self, x):
         import healpy as hp
-        return hp.mollview(x, hold=True, title="") # NOTE: maybe title=None
+
+        return hp.mollview(x, hold=True, title="")  # NOTE: maybe title=None
+
 
 # @xr.register_dataset_accessor("waterfall")
 # class WaterfallAccessor:
@@ -222,20 +228,26 @@ class MollviewAccessor:
 #     def waterfall(self,x):
 #         pass
 
+
 class SimTensor:
     def __init__(self):
         self.tensor = None
+
     def from_luseeData(self, luseeData: lusee.Data, name: str = "luseeData"):
         self.tensor = xr.DataArray().luseeDataLoader.from_luseeData(luseeData, name)
         return self.tensor
+
     def from_config(self, config: Config):
         self.tensor = xr.Dataset().configLoader.from_config(config)
         return self.tensor
+
     def from_args(self, args):
         self.tensor = xr.Dataset().argsLoader.from_args(args)
         return self.tensor
 
+
 ##---------------------------------------------------------------------------##
+
 
 # FIX: feels like a hack
 def np_symlogspace(start, stop, num=50):
@@ -296,7 +308,26 @@ def create_parser():
 def combs(nbeams=4):
     if nbeams != 4:
         raise NotImplementedError
-    return np.array([ "00R", "01R", "01I", "02R", "02I", "03R", "03I", "11R", "12R", "12I", "13R", "13I", "22R", "23R", "23I", "33R", ])
+    return np.array(
+        [
+            "00R",
+            "01R",
+            "01I",
+            "02R",
+            "02I",
+            "03R",
+            "03I",
+            "11R",
+            "12R",
+            "12I",
+            "13R",
+            "13I",
+            "22R",
+            "23R",
+            "23I",
+            "33R",
+        ]
+    )
 
 
 def all_combs(n):
