@@ -1,6 +1,6 @@
 import sys
 
-sys.path.append("/home/rugved/Files/LuSEE/luseepy/simulation/driver/")
+sys.path.append("/home/rugvedpund/files/projects/luseepy/simulation/driver/")
 
 import os
 import pickle
@@ -8,8 +8,7 @@ import pickle
 import numpy as np
 from run_sim import SimDriver
 
-import simflows
-import simutils
+import simflows.utils as simutils
 
 ##---------------------------------------------------------------------------##
 """

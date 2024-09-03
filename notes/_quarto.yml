@@ -11,8 +11,7 @@ book:
   chapters:
     - index.qmd
     - 01_hosvd.qmd
-    - 02_likelihoods.qmd
-    - 03_visibilities.qmd
+    - 02_optimizer.qmd
     - summary.qmd
     - references.qmd
 

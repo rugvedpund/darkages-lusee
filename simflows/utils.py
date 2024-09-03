@@ -8,8 +8,6 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import seaborn as sns
-import tensorly as tl
 import xarray as xr
 import yaml
 
@@ -424,6 +422,8 @@ def sns_pairplot(
     da_norm_pmean=None,
     cmb_norm_pmean=None,
 ):
+    import seaborn as sns
+
     if sky is not None:
         norm_pdata = sky.ulsa.norm_pdata
         ulsa_norm_pmean = sky.ulsa.norm_pmean

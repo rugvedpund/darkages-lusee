@@ -9,6 +9,8 @@ import torch
 import yaml
 from sinf import GIS
 
+import simflows.utils as simutils
+
 torch.manual_seed(0)
 
 ##---------------------------------------------------------------------------##
@@ -226,7 +228,9 @@ class GaussianApprox(LikelihoodModel):
         self.ulsa_means = self.sky.ulsa.norm_pmean.copy()[None, :]
         self.da_means = self.sky.da.norm_pmean.copy()[None, :] * true_amp
         self.ampxda_means = self.sky.da.norm_pmean.copy()[None, :] * amp[:, None]
-        self.da_loglikelihood = self.model.loglikelihood(self.ulsa_means + self.da_means - self.ampxda_means)
+        self.da_loglikelihood = self.model.loglikelihood(
+            self.ulsa_means + self.da_means - self.ampxda_means
+        )
         return self.da_loglikelihood
 
     def get_cmb_loglikelihood(self, amp, true_amp=1.0):
@@ -235,12 +239,13 @@ class GaussianApprox(LikelihoodModel):
         self.ulsa_means = self.sky.ulsa.norm_pmean.copy()[None, :]
         self.cmb_means = self.sky.cmb.norm_pmean.copy()[None, :] * true_amp
         self.ampxcmb_means = self.sky.cmb.norm_pmean.copy()[None, :] * amp[:, None]
-        self.cmb_loglikelihood = self.model.loglikelihood(self.ulsa_means + self.cmb_means - self.ampxcmb_means)
+        self.cmb_loglikelihood = self.model.loglikelihood(
+            self.ulsa_means + self.cmb_means - self.ampxcmb_means
+        )
         return self.cmb_loglikelihood
 
 
 ##---------------------------------------------------------------------------##
-
 
 
 class SkyAnalyzer:
@@ -295,7 +300,6 @@ class SkyAnalyzer:
         self.cmb.set_comb(comb)
         return self.ulsa.data, self.da.data, self.cmb.data
 
-
     def subsample(self, n):
         print(
             "subsampling from (nfreq,ndata)",
@@ -341,8 +345,8 @@ class SimData:
         just like lusee.Data"""
         return self.sim[request]
 
-    def get_comb(self,comb):
-        return self.sim[:,comb,:].T # (nfreqs, ntimes)
+    def get_comb(self, comb):
+        return self.sim[:, comb, :].T  # (nfreqs, ntimes)
 
     def set_comb(self, comb):
         """comb can be 'all', 'auto', or comb of the form '00R' etc."""
@@ -437,7 +441,7 @@ class Foregrounds(SimForeground):
         self.fgs = [SimForeground(path) for path in fgpaths]
         # self.fgs = self.load_parallel(fgpaths)
 
-    def get_comb(self,comb):
+    def get_comb(self, comb):
         for fg in self.fgs:
             fg.data = fg.get_comb(comb)
 
@@ -485,4 +489,3 @@ class Signals(SimSignal):
             self.sigs = [future.result() for future in future_sigs]
             print("done")
         return self.sigs
-
