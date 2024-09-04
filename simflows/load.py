@@ -2,6 +2,7 @@
 
 import os
 
+import jax
 import jax.numpy as jnp
 import lusee
 import numpy as np
@@ -9,19 +10,36 @@ import xarray as xr
 
 import simflows.utils as simutils
 
-path_here = os.path.dirname(os.path.abspath(__file__))
-data_path = os.path.join(path_here, "../")
+# WARN: this dumb shit is jax because they dont like float64. it only works at startup
+jax.config.update("jax_enable_x64", True)
+
+
+# path_here = os.path.dirname(os.path.abspath(__file__))
+# data_path = os.path.join(path_here, "../")
 
 
 ##--------------------------------------------------------------------##
 # %%
 
-"""
-1. need mock data for ulsa, da, cmb
-    - ulsa: power law freqs x gaussian noise times
-    - da,cmb: template freqs x no noise times
-2. create named tensor class?
-"""
+
+def load_mock_sim(
+    freqs: jnp.ndarray = jnp.linspace(1, 50),
+    times: int = 650,
+    sigma: float = 1e-3,
+    amp30: jnp.float64 = 1e5,
+    idx: jnp.float64 = 2.54,
+    T_cmb: jnp.float32 = 2.75,
+):
+    fg = fg_template(freqs, amp30, idx)
+    da = da_template(freqs)
+    cmb = cmb_template(freqs, T_cmb)
+    noise = gaussian_noise(times, sigma)
+    print("creating mock sims..")
+    print("  ", f"{fg.shape=}", f"{da.shape=}", f"{cmb.shape=}", f"{noise.shape=}")
+    return {"fg": fg, "da": da, "cmb": cmb, "noise": noise}
+
+
+# %%
 
 
 def gaussian_noise(times: int = 650, sigma: float = 1e-3) -> jnp.ndarray:
