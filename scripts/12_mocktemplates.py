@@ -40,35 +40,3 @@ dsumdnu.plot(yscale="symlog")
 plt.show()
 
 # %%
-
-
-##--------------------------------------------------------------------##
-# %%
-"""
-┌────────────────────────────────────────────────────────────────────────┐
-│ taking ratios makes all temperatures positive, intuitively should help │
-└────────────────────────────────────────────────────────────────────────┘
-"""
-
-ratio = templates / templates.sel(freqs=30)
-g = ratio.plot.line(row="kind", sharey=False)
-g.axs[0, 0].set_yscale("log")
-plt.show()
-g
-
-##--------------------------------------------------------------------##
-# %%
-# what happens to the sum
-# NOTE: the sum is of ratios is incorrect, since the denominators are not the same
-
-ratio = templates / templates.sel(freqs=30)
-g = ratio.plot.line(row="kind", sharey=False)
-g.axs[0, 0].set_yscale("log")
-plt.show()
-g
-
-##--------------------------------------------------------------------##
-# %%
-
-
-# %%
