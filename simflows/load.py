@@ -29,10 +29,11 @@ def load_templates(
     amp30: jnp.float64 = 1e5,
     idx: jnp.float64 = 2.54,
     T_cmb: jnp.float32 = 2.75,
+    da_amp: jnp.float32 = 1.0,
 ):
     # NOTE: creating jax arrays just to convert them back to numpy. to be fixed
     fg = fg_template(freqs, amp30, idx)
-    da = da_template(freqs)
+    da = da_template(freqs, da_amp)
     cmb = cmb_template(freqs, T_cmb)
     print("creating mock templates..")
     print("  ", f"{fg.shape=}", f"{da.shape=}", f"{cmb.shape=}")
@@ -81,9 +82,11 @@ def gaussian_noise(
     return sigma * jax.random.normal(key, (nfreqs, ntimes))
 
 
-def da_template(freqs: jnp.ndarray = jnp.linspace(1, 50)) -> jnp.ndarray:
+def da_template(
+    freqs: jnp.ndarray = jnp.linspace(1, 50), da_amp: jnp.float32 = 1.0
+) -> jnp.ndarray:
     """lusee T_DarkAges_Scaled template"""
-    t21 = lusee.monosky.T_DarkAges_Scaled(freqs)
+    t21 = da_amp * lusee.monosky.T_DarkAges_Scaled(freqs)
     return jnp.array(t21)
 
 
