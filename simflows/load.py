@@ -26,7 +26,7 @@ def load_templates(
     freqs: jnp.ndarray = jnp.linspace(1, 50),
     ntimes: int = 650,
     sigma: float = 1e-3,
-    amp30: jnp.float64 = 1e5,
+    amp30: jnp.float64 = 2e4,
     idx: jnp.float64 = 2.54,
     T_cmb: jnp.float32 = 2.75,
     da_amp: jnp.float32 = 1.0,

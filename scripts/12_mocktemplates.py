@@ -29,6 +29,21 @@ g
 
 ##--------------------------------------------------------------------##
 # %%
+
+sum = templates.sum("kind")
+sum /= sum.sel(freqs=30)
+dsumdnu = xr.DataArray(np.gradient(sum), dims=sum.dims, coords=sum.coords)
+
+sum.plot(yscale="log")
+dsumdnu.plot(yscale="symlog")
+# plt.xlim(10,50)
+plt.show()
+
+# %%
+
+
+##--------------------------------------------------------------------##
+# %%
 """
 ┌────────────────────────────────────────────────────────────────────────┐
 │ taking ratios makes all temperatures positive, intuitively should help │
@@ -46,25 +61,11 @@ g
 # what happens to the sum
 # NOTE: the sum is of ratios is incorrect, since the denominators are not the same
 
-sum = templates.sum("kind")
-# sum /= sum.sel(freqs=30)
-dsumdnu = xr.DataArray(np.gradient(sum), dims=sum.dims, coords=sum.coords)
-
-sum.plot(yscale="log")
-dsumdnu.plot(yscale="symlog")
-# plt.xlim(10,50)
-plt.show()
-
-
-# %%
-
 ratio = templates / templates.sel(freqs=30)
 g = ratio.plot.line(row="kind", sharey=False)
 g.axs[0, 0].set_yscale("log")
 plt.show()
 g
-
-# %%
 
 ##--------------------------------------------------------------------##
 # %%
