@@ -8,6 +8,7 @@ import lusee
 import numpy as np
 import xarray as xr
 
+import simflows.jax as simjax
 import simflows.utils as simutils
 
 # WARN: this dumb shit is jax because they dont like float64. it only works at startup
@@ -24,8 +25,6 @@ jax.config.update("jax_enable_x64", True)
 
 def load_templates(
     freqs: jnp.ndarray = jnp.linspace(1, 50),
-    ntimes: int = 650,
-    sigma: float = 1e-3,
     amp30: jnp.float64 = 2e4,
     idx: jnp.float64 = 2.54,
     T_cmb: jnp.float32 = 2.75,
@@ -45,28 +44,39 @@ def load_templates(
     return templates.to_dataarray(dim="kind")
 
 
+# %%
+
+
 def load_mock_sim(
     freqs: jnp.ndarray = jnp.linspace(1, 50),
     ntimes: int = 650,
-    sigma: float = 1e-3,
-    amp30: jnp.float64 = 1e5,
-    idx: jnp.float64 = 2.54,
+    amp30s: jnp.ndarray = None,
+    idxs: jnp.ndarray = None,
     T_cmb: jnp.float32 = 2.75,
+    da_amp: jnp.float32 = 1.0,
 ):
     # NOTE: creating jax arrays just to convert them back to numpy. to be fixed
-    fg = fg_template(freqs, amp30, idx)[:, None] * jnp.ones(ntimes)
-    da = da_template(freqs)[:, None] * jnp.ones(ntimes)
-    cmb = cmb_template(freqs, T_cmb)[:, None] * jnp.ones(ntimes)
-    noise = gaussian_noise(ntimes, sigma)
+    if idxs is None:
+        idxs = simjax.random_normal((ntimes, 1), seed=42, mean=2.5, sigma=0.1)
+    if amp30s is None:
+        amp30s = simjax.random_normal((ntimes, 1), seed=42, mean=1e5, sigma=1e5)
+
+    amp30s = jnp.abs(amp30s)
+    fg = fg_template(freqs, amp30s, idxs)
+    print(f"{fg.shape=}")
+    da = jnp.ones(ntimes)[:, None] * da_template(freqs, da_amp)
+    cmb = jnp.ones(ntimes)[:, None] * cmb_template(freqs, T_cmb)
     print("creating mock sims..")
-    print("  ", f"{fg.shape=}", f"{da.shape=}", f"{cmb.shape=}", f"{noise.shape=}")
+    print("  ", f"{fg.shape=}", f"{da.shape=}", f"{cmb.shape=}")
 
     mock = xr.Dataset()
-    coords = {"freqs": np.array(freqs), "times": np.arange(ntimes)}
+    coords = {"times": np.arange(ntimes), "freqs": np.array(freqs)}
     mock["fg"] = xr.DataArray(fg, coords)
     mock["da"] = xr.DataArray(da, coords)
     mock["cmb"] = xr.DataArray(cmb, coords)
-    mock["noise"] = xr.DataArray(noise, coords)
+    mock["sum"] = mock["fg"] + mock["da"] + mock["cmb"]
+    mock["delta"] = mock["sum"] - mock["sum"].mean("times")
+
     return mock.to_dataarray(dim="kind")
 
 

@@ -13,8 +13,15 @@ import yaml
 
 ##---------------------------------------------------------------------------##
 
-lognorm = mpl.colors.LogNorm()
-symlognorm = mpl.colors.SymLogNorm(linthresh=1e2)
+
+def lognorm(**kwargs):
+    return mpl.colors.LogNorm(**kwargs)
+
+
+def symlognorm(linthresh=1e2):
+    return mpl.colors.SymLogNorm(linthresh=linthresh)
+
+
 combmat = [
     "00R",
     "01R",

@@ -41,12 +41,6 @@ c, f, l, t = ff.indices("c f l t")  # combs, freqs, ell sph-harm, times
 tsrex = tulsa[t, ~f, l] * tbeams[c, ~f, l]
 tsrex = tsrex >> [t, c, f]
 
-# tsrex = (
-#     dummy[~t, ~f, l] * tbeams[~c, f, l] * tcmb
-#     + dummy[~t, ~f, l] * tbeams[c, ~f, l] * tda[f]
-#     + tulsa[~t, ~f, l] * tbeams[~c, ~f, l]
-# )
-
 # %%
 ##--------------------------------------------------------------------##
 # %%
@@ -54,3 +48,9 @@ tsrex = tsrex >> [t, c, f]
 fac = ff.Factorization.from_tsrex(tsrex, target)
 
 # %%
+
+# tsrex = (
+#     dummy[~t, ~f, l] * tbeams[~c, f, l] * tcmb
+#     + dummy[~t, ~f, l] * tbeams[c, ~f, l] * tda[f]
+#     + tulsa[~t, ~f, l] * tbeams[~c, ~f, l]
+# )

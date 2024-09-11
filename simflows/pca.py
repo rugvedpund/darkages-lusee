@@ -19,20 +19,21 @@ def get_pca(
     out = xr.Dataset()
     assert times_dim in datatensor.dims
     assert freqs_dim in datatensor.dims
-    assert all(dim in datatensor.dims for dim in other_dims)
+    if other_dims is not None:
+        assert all(dim in datatensor.dims for dim in other_dims)
     # NOTE: mean subtracted tensor
-    out["delta"] = datatensor - datatensor.mean(times_dim)
-    out["delta"].load()
+    # out["delta"] = datatensor - datatensor.mean(times_dim)
+    # out["delta"].load()
+
     print("doing pca..")
-    out["Uf"], out["Sf"], _ = out["delta"].linalg.svd(
+    U, S, Vt = datatensor.linalg.svd(
         dims=(freqs_dim, times_dim),
         full_matrices=False,
         out_append="_eig",
     )
-    out["Sf"] = out["Sf"].rename({freqs_dim: f"{freqs_dim}_eig"})
-    out["delta_eig"] = xr.dot(out["Uf"], out["delta"], dims=freqs_dim)
-    out["eva"] = out["Sf"] / np.sqrt(datatensor.sizes[freqs_dim] - 1)
-    return out
+    S = S.rename({freqs_dim: f"{freqs_dim}_eig"})
+    Vt = Vt.rename({freqs_dim: f"{freqs_dim}_eig"})
+    return xr.Dataset({"U": U, "S": S, "Vt": Vt})
     # FIX: really only need eva, eve and delta_eig?
 
 

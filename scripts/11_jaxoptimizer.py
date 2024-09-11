@@ -108,7 +108,7 @@ def loss3(w, deltafg, signal=meanda):
     wnorm = jnp.linalg.norm(w)  # frobenius norm sqrt(sum(w**2))
     w = w / wnorm
     deltafg_tilde = jnp.einsum("cf,tcf->t", w, deltafg)
-    signal_tilde = jnp.einsum("cf,cf->", w, meanda)
+    signal_tilde = jnp.einsum("cf,cf->", w, signal)
     # print(f"{signal_tilde=}")
     return (jnp.var(deltafg_tilde) / signal_tilde**2) + (wnorm**2 - 1) ** 2
     # return jnp.var(deltafg_tilde) / signal_tilde**2
