@@ -11,15 +11,15 @@ import matplotlib.pyplot as plt
 import numpy as np
 import xarray as xr
 
-import simflows.load as loader
+import simflows.load as simloader
 import simflows.utils as simutils
 
 ##--------------------------------------------------------------------##
 # %%
 # load templates for ulsa, da, cmb
 
-templates = loader.load_templates(freqs=jnp.linspace(1, 50, 393), da_amp=4e6)
-mock = loader.load_mock_sim()
+templates = simloader.load_templates(freqs=jnp.linspace(1, 50, 393), da_amp=4e6)
+mock = simloader.load_mock_sim()
 
 
 g = templates.plot.line(row="kind", sharey=False)

@@ -13,7 +13,7 @@ import numpy as np
 import xarray as xr
 import xarray_einstats
 
-import simflows.load as loader
+import simflows.load as simloader
 import simflows.pca as simpca
 import simflows.utils as simutils
 
@@ -25,9 +25,8 @@ import simflows.utils as simutils
 └─────────────────────┘
 """
 
-# templates = loader.load_templates(freqs=jnp.linspace(1, 50, 393), da_amp=4e6)
-templates = loader.load_templates(da_amp=1)
-mock = loader.load_mock_sim(da_amp=1)
+templates = simloader.load_templates(da_amp=1)
+mock = simloader.load_mock_sim(da_amp=1)
 fg, da, cmb, noise = mock
 sum = mock.sum("kind")
 # delta = sum - sum.mean("times")

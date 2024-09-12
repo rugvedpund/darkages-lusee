@@ -1,7 +1,5 @@
 # Load the simulation data into tensors
 
-import os
-
 import jax
 import jax.numpy as jnp
 import lusee
@@ -9,7 +7,6 @@ import numpy as np
 import xarray as xr
 
 import simflows.jax as simjax
-import simflows.utils as simutils
 
 # WARN: this dumb shit is jax because they dont like float64. it only works at startup
 jax.config.update("jax_enable_x64", True)
@@ -25,13 +22,13 @@ jax.config.update("jax_enable_x64", True)
 
 def load_templates(
     freqs: jnp.ndarray = jnp.linspace(1, 50),
-    amp30: jnp.float64 = 2e4,
+    amp20: jnp.float64 = 1e5,
     idx: jnp.float64 = 2.54,
     T_cmb: jnp.float32 = 2.75,
     da_amp: jnp.float32 = 1.0,
 ):
-    # NOTE: creating jax arrays just to convert them back to numpy. to be fixed
-    fg = fg_template(freqs, amp30, idx)
+    # FIX: creating jax arrays just to convert them back to numpy. to be fixed
+    fg = fg_template(freqs, amp20, idx)
     da = da_template(freqs, da_amp)
     cmb = cmb_template(freqs, T_cmb)
     print("creating mock templates..")
@@ -50,19 +47,21 @@ def load_templates(
 def load_mock_sim(
     freqs: jnp.ndarray = jnp.linspace(1, 50),
     ntimes: int = 650,
-    amp30s: jnp.ndarray = None,
+    amp20MHz: jnp.ndarray = None,
     idxs: jnp.ndarray = None,
     T_cmb: jnp.float32 = 2.75,
     da_amp: jnp.float32 = 1.0,
 ):
     # NOTE: creating jax arrays just to convert them back to numpy. to be fixed
     if idxs is None:
-        idxs = simjax.random_normal((ntimes, 1), seed=42, mean=2.5, sigma=0.1)
-    if amp30s is None:
-        amp30s = simjax.random_normal((ntimes, 1), seed=42, mean=1e5, sigma=1e5)
+        print("  creating random idxs..")
+        idxs = simjax.random_normal((ntimes, 1), seed=0, mean=2.5, sigma=0.1)
+    if amp20MHz is None:
+        print("  creating random amp30s..")
+        amp20MHz = simjax.random_normal((ntimes, 1), seed=1, mean=1e5, sigma=1e5)
 
-    amp30s = jnp.abs(amp30s)
-    fg = fg_template(freqs, amp30s, idxs)
+    amp20MHz = jnp.abs(amp20MHz)
+    fg = fg_template(freqs, amp20MHz, idxs)
     print(f"{fg.shape=}")
     da = jnp.ones(ntimes)[:, None] * da_template(freqs, da_amp)
     cmb = jnp.ones(ntimes)[:, None] * cmb_template(freqs, T_cmb)
@@ -109,11 +108,12 @@ def cmb_template(
 
 def fg_template(
     freqs: jnp.ndarray = jnp.linspace(1, 50),
-    amp30: jnp.float64 = 1e5,
+    amp20: jnp.float64 = 1e6,
     idx: jnp.float64 = 2.54,
+    fpivot: jnp.float64 = 20.0,
 ) -> jnp.ndarray:
     """Power law function for the frequency domain"""
-    return amp30 * (1 / (freqs / 30) ** idx)
+    return amp20 * (1 / (freqs / fpivot) ** idx)
 
 
 # %%

@@ -2,7 +2,7 @@ import jax
 import jax.numpy as jnp
 
 import simflows.jax as simjax
-import simflows.load as loader
+import simflows.load as simloader
 import simflows.pca as simpca
 import simflows.utils as simutils
 
