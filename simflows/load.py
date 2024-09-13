@@ -46,6 +46,7 @@ def load_templates(
 
 def load_mock_sim(
     freqs: jnp.ndarray = jnp.linspace(1, 50),
+    fpivot: jnp.float64 = 20.0,
     ntimes: int = 650,
     amp20MHz: jnp.ndarray = None,
     idxs: jnp.ndarray = None,
@@ -61,7 +62,7 @@ def load_mock_sim(
         amp20MHz = simjax.random_normal((ntimes, 1), seed=1, mean=1e5, sigma=1e5)
 
     amp20MHz = jnp.abs(amp20MHz)
-    fg = fg_template(freqs, amp20MHz, idxs)
+    fg = fg_template(freqs, amp20MHz, idxs, fpivot)
     print(f"{fg.shape=}")
     da = jnp.ones(ntimes)[:, None] * da_template(freqs, da_amp)
     cmb = jnp.ones(ntimes)[:, None] * cmb_template(freqs, T_cmb)

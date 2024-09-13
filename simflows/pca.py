@@ -16,7 +16,6 @@ def get_pca(
     freqs_dim: str,
     other_dims: [str],
 ) -> xr.Dataset:
-    out = xr.Dataset()
     assert times_dim in datatensor.dims
     assert freqs_dim in datatensor.dims
     if other_dims is not None:
@@ -38,7 +37,7 @@ def get_pca(
 
 
 def get_pca_proj(
-    ulsa: xr.DataArray,
+    fg: xr.DataArray,
     da: xr.DataArray,
     cmb: xr.DataArray,
     pca_tensor: xr.Dataset,
@@ -47,18 +46,18 @@ def get_pca_proj(
     other_dims: [str],
 ) -> xr.Dataset:
     print("projecting pca..")
-    assert times_dim in ulsa.dims
-    assert freqs_dim in ulsa.dims
-    assert all(dim in ulsa.dims for dim in other_dims)
+    assert times_dim in fg.dims
+    assert freqs_dim in fg.dims
+    assert all(dim in fg.dims for dim in other_dims)
     out = xr.Dataset()
-    out["pulsa"] = xr.dot(ulsa, pca_tensor["Uf"], dims=freqs_dim)
-    out["pda"] = xr.dot(da, pca_tensor["Uf"], dims=freqs_dim)
-    out["pcmb"] = xr.dot(cmb, pca_tensor["Uf"], dims=freqs_dim)
-    out["mean pulsa"] = out["pulsa"].mean(times_dim)
+    out["pfg"] = xr.dot(fg, pca_tensor["U"], dims=freqs_dim)
+    out["pda"] = xr.dot(da, pca_tensor["U"], dims=freqs_dim)
+    out["pcmb"] = xr.dot(cmb, pca_tensor["U"], dims=freqs_dim)
+    out["mean pfg"] = out["pfg"].mean(times_dim)
     out["mean pda"] = out["pda"].mean(times_dim)
     out["mean pcmb"] = out["pcmb"].mean(times_dim)
-    out["rms pulsa"] = out["pulsa"].std(times_dim)
-    return out
+    out["rms pfg"] = out["pfg"].std(times_dim)
+    return out.to_dataarray(dim="kind")
 
 
 def get_gaussian_cov(
