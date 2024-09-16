@@ -1,9 +1,5 @@
 # %%
 
-import matplotlib as mpl
-import matplotlib.animation as animation
-import optax
-
 from simflows.imports import *
 
 ##--------------------------------------------------------------------##
@@ -149,7 +145,7 @@ def update(frame):
 
 
 # Create the animation
-ani = animation.FuncAnimation(fig, update, frames=frames, interval=10)
+ani = mpl.animation.FuncAnimation(fig, update, frames=frames, interval=10)
 plt.show()
 # ani.save('optimization_progress.mp4', writer='ffmpeg')
 

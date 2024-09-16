@@ -63,11 +63,11 @@ def load_mock_sim(
 
     amp20MHz = jnp.abs(amp20MHz)
     fg = fg_template(freqs, amp20MHz, idxs, fpivot)
-    print(f"{fg.shape=}")
+    # print(f"{fg.shape=}")
     da = jnp.ones(ntimes)[:, None] * da_template(freqs, da_amp)
     cmb = jnp.ones(ntimes)[:, None] * cmb_template(freqs, T_cmb)
     print("creating mock sims..")
-    print("  ", f"{fg.shape=}", f"{da.shape=}", f"{cmb.shape=}")
+    # print("  ", f"{fg.shape=}", f"{da.shape=}", f"{cmb.shape=}")
 
     mock = xr.Dataset()
     coords = {"times": np.arange(ntimes), "freqs": np.array(freqs)}
