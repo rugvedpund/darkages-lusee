@@ -19,7 +19,7 @@ import simflows.utils as simutils
 # load templates for ulsa, da, cmb
 
 templates = simloader.load_templates(freqs=jnp.linspace(1, 50, 393), da_amp=4e6)
-mock = simloader.load_mock_sim()
+mock = simloader.make_mock_sim()
 
 
 g = templates.plot.line(row="kind", sharey=False)

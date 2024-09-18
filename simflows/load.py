@@ -12,10 +12,6 @@ import simflows.jax as simjax
 jax.config.update("jax_enable_x64", True)
 
 
-# path_here = os.path.dirname(os.path.abspath(__file__))
-# data_path = os.path.join(path_here, "../")
-
-
 ##--------------------------------------------------------------------##
 # %%
 
@@ -44,7 +40,7 @@ def load_templates(
 # %%
 
 
-def load_mock_sim(
+def make_mock_sim(
     freqs: jnp.ndarray = jnp.linspace(1, 50),
     fpivot: jnp.float64 = 20.0,
     ntimes: int = 650,
@@ -66,7 +62,7 @@ def load_mock_sim(
     # print(f"{fg.shape=}")
     da = jnp.ones(ntimes)[:, None] * da_template(freqs, da_amp)
     cmb = jnp.ones(ntimes)[:, None] * cmb_template(freqs, T_cmb)
-    print("creating mock sims..")
+    # print("creating mock sims..")
     # print("  ", f"{fg.shape=}", f"{da.shape=}", f"{cmb.shape=}")
 
     mock = xr.Dataset()

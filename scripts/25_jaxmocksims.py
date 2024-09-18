@@ -9,7 +9,7 @@ ntimes = 650
 idxs = simjax.random_normal((ntimes, 1), seed=0, mean=2.5, sigma=0.5)
 amp20MHz = simjax.random_normal((ntimes, 1), seed=1, mean=1e4, sigma=1e4)
 amp20MHz = jnp.abs(amp20MHz)
-mock = simloader.load_mock_sim(idxs=idxs, amp20MHz=amp20MHz, da_amp=1)
+mock = simloader.make_mock_sim(idxs=idxs, amp20MHz=amp20MHz, da_amp=1)
 fg, da, cmb, sum, delta = mock
 
 print("converting to jax arrays..")

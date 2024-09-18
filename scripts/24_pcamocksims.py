@@ -8,7 +8,7 @@ ntimes = 650
 idxs = simjax.random_normal((ntimes, 1), seed=0, mean=2.5, sigma=0.5)
 amp20MHz = simjax.random_normal((ntimes, 1), seed=1, mean=1e4, sigma=1e4)
 amp20MHz = jnp.abs(amp20MHz)
-mock = simloader.load_mock_sim(idxs=idxs, amp20MHz=amp20MHz, da_amp=1)
+mock = simloader.make_mock_sim(idxs=idxs, amp20MHz=amp20MHz, da_amp=1)
 fg, da, cmb, sum, delta = mock
 
 # distribution of fg mock sim
@@ -138,7 +138,7 @@ sigma_a20 = 1e3
 idxs = simjax.random_normal((ntimes, 1), seed=0, mean=2.5, sigma=0.5)
 amp20MHz = simjax.random_normal((ntimes, 1), seed=1, mean=1e4, sigma=sigma_a20)
 amp20MHz = jnp.abs(amp20MHz)
-mock = simloader.load_mock_sim(idxs=idxs, amp20MHz=amp20MHz, da_amp=1)
+mock = simloader.make_mock_sim(idxs=idxs, amp20MHz=amp20MHz, da_amp=1)
 fg, da, cmb, sum, delta = mock
 # distribution of mock fg sim
 fig, ax = plt.subplots(1, 2, figsize=(10, 5))
@@ -240,7 +240,7 @@ plt.show()
 # %%
 # templates = loader.load_templates(freqs=jnp.linspace(1, 50, 393), da_amp=4e6)
 templates = simloader.load_templates(da_amp=1)
-mock = simloader.load_mock_sim(da_amp=1)
+mock = simloader.make_mock_sim(da_amp=1)
 fg, da, cmb, noise = mock
 
 g = templates.plot.line(row="kind", sharey=False)
@@ -343,7 +343,7 @@ ntimes = 650
 idxs = simjax.random_normal((ntimes, 1), seed=0, mean=2.5, sigma=0.5)
 amp20MHz = simjax.random_normal((ntimes, 1), seed=1, mean=1e4, sigma=1e4)
 amp20MHz = jnp.abs(amp20MHz)
-mock = simloader.load_mock_sim(idxs=idxs, amp20MHz=amp20MHz, da_amp=1)
+mock = simloader.make_mock_sim(idxs=idxs, amp20MHz=amp20MHz, da_amp=1)
 fg, da, cmb, sum, delta = mock
 
 fig, ax = plt.subplots(1, 2, figsize=(10, 5))

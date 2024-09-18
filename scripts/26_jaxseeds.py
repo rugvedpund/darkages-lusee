@@ -5,22 +5,21 @@ from simflows.imports import *
 ##--------------------------------------------------------------------##
 # %%
 
-# motherseed = 1
-# np.random.seed(motherseed)
-# seed1, seed2, seed3 = np.random.randint(0, 1000, 3)
-# print(f"  {seed1=}", f"{seed2=}", f"{seed3=}")
+motherseed = 1
+np.random.seed(motherseed)
+seed1, seed2, seed3 = np.random.randint(0, 1000, 3)
+print(f"  {seed1=}", f"{seed2=}", f"{seed3=}")
 
 
-def get_toysims(seed1, seed2):
+def load_toysims(seed1, seed2):
     # load the mock simulation
     ntimes = 650
     idxs = simjax.random_normal((ntimes, 1), seed=seed1, mean=2.5, sigma=0.5)
     amp20MHz = simjax.random_normal((ntimes, 1), seed=seed2, mean=1e4, sigma=1e4)
     amp20MHz = jnp.abs(amp20MHz)
-    mock = simloader.load_mock_sim(idxs=idxs, amp20MHz=amp20MHz, da_amp=1)
+    mock = simloader.make_mock_sim(idxs=idxs, amp20MHz=amp20MHz, da_amp=1)
     fg, da, cmb, _, delta = mock
     freqs = mock.freqs
-
     print("converting to jax arrays..")
     (
         jfg,
@@ -96,7 +95,7 @@ def run_optimizers(signal: str = "da", seed: int = 42, learning_rate=0.01, niter
     np.random.seed(seed)
     seed1, seed2, seed3 = np.random.randint(0, 1000, 3)
     print(f"  {seed1=}", f"{seed2=}", f"{seed3=}")
-    jfg, jda, jcmb, jdelta, freqs = get_toysims(seed1, seed2)
+    jfg, jda, jcmb, jdelta, freqs = load_toysims(seed1, seed2)
     wtensor = get_wtensor(seed3)
     if signal == "da":
         print("  dark ages signal..")
@@ -194,14 +193,6 @@ woptim, iterations, loss_vals, wnorms, witers = run_optimizers(
     jsig, motherseed, learning_rate, niter
 )
 
-# learning_rate = 0.01
-# niter = 100000
-# jfg, jda, jcmb, jdelta, freqs = get_toysims(seed1, seed2)
-# wtensor = get_wtensor(seed3)
-# woptim, iterations, loss_vals, wnorms, witers = jax_optimize(
-#     lossfn, wtensor, jfg, jda, learning_rate, niter
-# )
-
 # plot the loss and wnorm
 plt.figure(figsize=(12, 4))
 plt.subplot(121)
@@ -235,7 +226,7 @@ def update(frame):
 # Create the animation
 ani = animation.FuncAnimation(fig, update, frames=frames, interval=10)
 writergif = animation.PillowWriter(fps=60)
-ani.save(f"{jsig}_optimization_progress.gif", writer=writergif)
+# ani.save(f"{jsig}_optimization_progress.gif", writer=writergif)
 plt.show()
 
 
