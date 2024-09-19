@@ -131,42 +131,115 @@ def optimize_wtensors(motherseed, niter=1000):
     return wda, wcmb
 
 
+def optimize_proj_wtensors(motherseed, niter=1000):
+    sim = make_toysim(motherseed)
+    delta_pca, proj = doPCA(sim)
+    wda, wcmb = make_random_weights(motherseed)
+    jpdelta, jpda, jpcmb = map(
+        jnp.array,
+        [
+            proj.sel(kind="pdelta").data,
+            proj.sel(kind="pda").data,
+            proj.sel(kind="pcmb").data,
+        ],
+    )
+    woptim_da, iter_da, loss_vals_da, wnorms_da, witers_da = optimize(
+        lossfn, wda, jpdelta, jpda, niter
+    )
+    woptim_cmb, iter_cmb, loss_vals_cmb, wnorms_cmb, witers_cmb = optimize(
+        lossfn, wcmb, jpdelta, jpcmb, niter
+    )
+
+    iterations = xr.DataArray(iter_da, dims=("iter"))
+    freqs_eig = xr.DataArray(proj.freqs_eig, dims=("freqs_eig"))
+    wda = xr.Dataset(
+        {
+            "woptim": xr.DataArray(woptim_da, dims=("freqs_eig")),
+            "loss": xr.DataArray(loss_vals_da, dims=("iter")),
+            "wnorm": xr.DataArray(wnorms_da, dims=("iter")),
+            "witer": xr.DataArray(witers_da, dims=("iter", "freqs_eig")),
+        },
+        coords={"freqs_eig": freqs_eig, "iter": iterations},
+    )
+    wcmb = xr.Dataset(
+        {
+            "woptim": xr.DataArray(woptim_cmb, dims=("freqs_eig")),
+            "loss": xr.DataArray(loss_vals_cmb, dims=("iter")),
+            "wnorm": xr.DataArray(wnorms_cmb, dims=("iter")),
+            "witer": xr.DataArray(witers_cmb, dims=("iter", "freqs_eig")),
+        },
+        coords={"freqs_eig": freqs_eig, "iter": iterations},
+    )
+    return wda, wcmb
+
+
+def run_seeds(seeds, niter=1000):
+    results = dict()
+    for seed in seeds:
+        wda, wcmb = optimize_wtensors(seed, niter)
+        wpda, wpcmb = optimize_proj_wtensors(seed, niter)
+        results[seed] = (wda, wcmb, wpda, wpcmb)
+    return results
+
+
 # %%
 
 niter = 100000
-seed = 42
+seed = 0
 sim = make_toysim()
-jfg, jda, jcmb, jdelta = sim_to_jax(sim)
+jfg, jpda, jpcmb, jpdelta = sim_to_jax(sim)
 delta_pca, proj = doPCA(sim)
 wda0, wcmb0 = make_random_weights(seed)
 wda, wcmb = optimize_wtensors(seed, niter)
+wpda, wpcmb = optimize_proj_wtensors(seed, niter)
 
 # %%
 
 fig, ax = plt.subplots(1, 3, figsize=(15, 4))
-wda.loss.plot(label="da", ax=ax[0], yscale="log")
-wcmb.loss.plot(label="cmb", ax=ax[0])
-wda.wnorm.plot(label="da", ax=ax[1])
-wcmb.wnorm.plot(label="cmb", ax=ax[1])
-wda.woptim.plot(label="da", ax=ax[2])
-wcmb.woptim.plot(label="cmb", ax=ax[2])
+wpda.loss.plot(label="da", ax=ax[0], yscale="log")
+wpcmb.loss.plot(label="cmb", ax=ax[0])
+wpda.wnorm.plot(label="da", ax=ax[1])
+wpcmb.wnorm.plot(label="cmb", ax=ax[1])
+wpda.woptim.plot(label="da", ax=ax[2])
+wpcmb.woptim.plot(label="cmb", ax=ax[2])
+plt.legend()
 plt.show()
+
+
+# %%
+
+plt.plot(xr.dot(wpda.woptim, delta_pca.U, dims="freqs_eig"), label="da")
+plt.plot(xr.dot(wpcmb.woptim, delta_pca.U, dims="freqs_eig"), label="cmb")
+wda.woptim.plot(color="C0", ls="--", alpha=0.7)
+wcmb.woptim.plot(color="C1", ls="--", alpha=0.7)
+plt.plot([], [], color="k", ls="--", label="w/o pca")
+plt.legend()
+plt.show()
+
+
+# %%
 
 
 # %%
 
 pca_loss_da = proj.sel(kind="pdelta").var("times") / proj.sel(kind="mean pda") ** 2
 pca_loss_cmb = proj.sel(kind="pdelta").var("times") / proj.sel(kind="mean pcmb") ** 2
-wda_loss = wda.loss.isel(iter=slice(-1000, None)).mean("iter")
-wcmb_loss = wcmb.loss.isel(iter=slice(-1000, None)).mean("iter")
+wpda_loss = wpda.loss.isel(iter=slice(-1000, None)).mean("iter")
+wpcmb_loss = wpcmb.loss.isel(iter=slice(-1000, None)).mean("iter")
 
 pca_loss_da.plot.scatter(label="da", yscale="log")
 pca_loss_cmb.plot.scatter(label="cmb", yscale="log")
-plt.axhline(wda_loss, color="C0", label="wda")
-plt.axhline(wcmb_loss, color="C1", label="wcmb")
+plt.axhline(wpda_loss, color="C0", label="wpda")
+plt.axhline(wpcmb_loss, color="C1", label="wpcmb")
 plt.legend()
 plt.title("pca vs jax loss")
 plt.show()
 
+
+# %%
+
+wpda_loss = wpda.loss.isel(iter=slice(-1000, None)).mean("iter")
+wpcmb_loss = wpcmb.loss.isel(iter=slice(-1000, None)).mean("iter")
+plt.show()
 
 # %%

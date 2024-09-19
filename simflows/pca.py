@@ -38,6 +38,7 @@ def get_pca(
 
 def get_pca_proj(
     fg: xr.DataArray,
+    delta: xr.DataArray,
     da: xr.DataArray,
     cmb: xr.DataArray,
     pca_tensor: xr.Dataset,
@@ -51,6 +52,7 @@ def get_pca_proj(
     assert all(dim in fg.dims for dim in other_dims)
     out = xr.Dataset()
     out["pfg"] = xr.dot(fg, pca_tensor["U"], dims=freqs_dim)
+    out["pdelta"] = xr.dot(delta, pca_tensor["U"], dims=freqs_dim)
     out["pda"] = xr.dot(da, pca_tensor["U"], dims=freqs_dim)
     out["pcmb"] = xr.dot(cmb, pca_tensor["U"], dims=freqs_dim)
     out["mean pfg"] = out["pfg"].mean(times_dim)
