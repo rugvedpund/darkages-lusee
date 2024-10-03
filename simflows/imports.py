@@ -11,6 +11,8 @@ import simflows.utils as simutils
 
 # WARN: stupid jax doesn't like float64 by default
 jax.config.update("jax_enable_x64", True)
+from typing import Dict, List, Tuple
+
 import lusee
 import matplotlib.pyplot as plt
 import numpy as np

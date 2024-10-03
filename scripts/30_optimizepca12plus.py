@@ -5,35 +5,7 @@ from simflows.imports import *
 # %%
 
 
-def make_toysim(motherseed: int = 42):
-    rng = np.random.RandomState(motherseed)
-    seed1, seed2 = rng.randint(0, 1000, 2)
-    ntimes = 650
-    idxs = simjax.random_normal((ntimes, 1), seed=seed1, mean=2.5, sigma=0.5)
-    amp20MHz = simjax.random_normal((ntimes, 1), seed=seed2, mean=1e4, sigma=1e4)
-    amp20MHz = jnp.abs(amp20MHz)
-    sim = simloader.make_mock_sim(
-        ntimes=ntimes,
-        idxs=idxs,
-        amp20MHz=amp20MHz,
-        da_amp=1,
-        freqs=jnp.linspace(1, 50, 50),
-    )
-    return sim
-
-
-def sim_to_jax(sim):
-    fg, da, cmb, _, delta = sim
-    jfg, jda, jcmb, jdelta = (
-        jnp.array(fg),
-        jnp.array(da),
-        jnp.array(cmb),
-        jnp.array(delta),
-    )
-    return jfg, jda, jcmb, jdelta
-
-
-def doPCA(sim):
+def sim2pcaproj(sim):
     delta, fg, da, cmb = sim.sel(kind=["delta", "fg", "da", "cmb"])
     delta_pca = simpca.get_pca(delta, "times", "freqs", other_dims=[])
     proj = simpca.get_pca_proj(
@@ -50,12 +22,13 @@ def make_random_weights(motherseed: int = 42):
     return wda, wcmb
 
 
-def make_w(seed: int = 42):
+def make_w(seed: int = 42, mask=jnp.arange(50) >= 12):
     key = jax.random.PRNGKey(seed)
     w = jax.random.uniform(key, shape=(50)) - 0.5
     w = w / jnp.linalg.norm(w)
     wsigns = jnp.sign(w)
     w = w / wsigns[-1]  # enforce positive sign for first element
+    w = jnp.where(mask, w, 0)  # replace mask=False with 0
     return w
 
 
@@ -103,9 +76,9 @@ def lossfn(w, deltafg, signal):
     return (jnp.var(deltafg_tilde) / signal_tilde**2) + (wnorm**2 - 1) ** 2
 
 
-def optimize_wtensors(motherseed, niter=1000):
-    sim = make_toysim(motherseed)
-    _, jda, jcmb, jdelta = sim_to_jax(sim)
+def optimize_wtensors(motherseed, niter):
+    sim = simloader.make_toysim(motherseed)
+    _, jda, jcmb, jdelta = simloader.sim2jax(sim)
     wda, wcmb = make_random_weights(motherseed)
     woptim_da, iter_da, loss_vals_da, wnorms_da, witers_da = optimize(
         lossfn, wda, jdelta, jda, niter
@@ -113,11 +86,12 @@ def optimize_wtensors(motherseed, niter=1000):
     woptim_cmb, iter_cmb, loss_vals_cmb, wnorms_cmb, witers_cmb = optimize(
         lossfn, wcmb, jdelta, jcmb, niter
     )
-
+    assert np.allclose(iter_da, iter_cmb)
     iterations = xr.DataArray(iter_da, dims=("iter"))
     freqs = xr.DataArray(sim.freqs, dims=("freqs"))
-    wda = xr.Dataset(
+    xrwda = xr.Dataset(
         {
+            "wda0": xr.DataArray(wda, dims=("freqs")),
             "woptim": xr.DataArray(woptim_da, dims=("freqs")),
             "loss": xr.DataArray(loss_vals_da, dims=("iter")),
             "wnorm": xr.DataArray(wnorms_da, dims=("iter")),
@@ -125,8 +99,9 @@ def optimize_wtensors(motherseed, niter=1000):
         },
         coords={"freqs": freqs, "iter": iterations},
     )
-    wcmb = xr.Dataset(
+    xrwcmb = xr.Dataset(
         {
+            "wcmb0": xr.DataArray(wcmb, dims=("freqs")),
             "woptim": xr.DataArray(woptim_cmb, dims=("freqs")),
             "loss": xr.DataArray(loss_vals_cmb, dims=("iter")),
             "wnorm": xr.DataArray(wnorms_cmb, dims=("iter")),
@@ -134,12 +109,12 @@ def optimize_wtensors(motherseed, niter=1000):
         },
         coords={"freqs": freqs, "iter": iterations},
     )
-    return wda, wcmb
+    return xrwda, xrwcmb
 
 
-def optimize_proj_wtensors(motherseed, niter=1000):
-    sim = make_toysim(motherseed)
-    delta_pca, proj = doPCA(sim)
+def optimize_proj_wtensors(motherseed, niter):
+    sim = simloader.make_toysim(motherseed)
+    delta_pca, proj = sim2pcaproj(sim)
     wda, wcmb = make_random_weights(motherseed)
     jpdelta, jpda, jpcmb = map(
         jnp.array,
@@ -158,8 +133,9 @@ def optimize_proj_wtensors(motherseed, niter=1000):
 
     iterations = xr.DataArray(iter_da, dims=("iter"))
     freqs_eig = xr.DataArray(proj.freqs_eig, dims=("freqs_eig"))
-    wda = xr.Dataset(
+    xrwda = xr.Dataset(
         {
+            "wda0": xr.DataArray(wda, dims=("freqs_eig")),
             "woptim": xr.DataArray(woptim_da, dims=("freqs_eig")),
             "loss": xr.DataArray(loss_vals_da, dims=("iter")),
             "wnorm": xr.DataArray(wnorms_da, dims=("iter")),
@@ -167,8 +143,9 @@ def optimize_proj_wtensors(motherseed, niter=1000):
         },
         coords={"freqs_eig": freqs_eig, "iter": iterations},
     )
-    wcmb = xr.Dataset(
+    xrwcmb = xr.Dataset(
         {
+            "wcmb0": xr.DataArray(wcmb, dims=("freqs_eig")),
             "woptim": xr.DataArray(woptim_cmb, dims=("freqs_eig")),
             "loss": xr.DataArray(loss_vals_cmb, dims=("iter")),
             "wnorm": xr.DataArray(wnorms_cmb, dims=("iter")),
@@ -176,15 +153,16 @@ def optimize_proj_wtensors(motherseed, niter=1000):
         },
         coords={"freqs_eig": freqs_eig, "iter": iterations},
     )
-    return wda, wcmb
+    return xrwda, xrwcmb
 
 
 def run_seeds(seeds: list[int], niter=1000):
     results = dict()
     for seed in tqdm(seeds, desc="Seeds", leave=True):
-        wda, wcmb = optimize_wtensors(seed, niter)
+        # wda, wcmb = optimize_wtensors(seed, niter)
         wpda, wpcmb = optimize_proj_wtensors(seed, niter)
-        results[seed] = (wda, wcmb, wpda, wpcmb)
+        # results[seed] = (wda, wcmb, wpda, wpcmb)
+        results[seed] = (wpda, wpcmb)
     return results
 
 
@@ -196,27 +174,33 @@ results = run_seeds(seeds, niter)
 
 # %%
 
+niter = 100000
+seeds = np.arange(10)
+
 import pickle
 
-# pickle.dump(results, open("./data/outputs/results.pkl", "wb"))
-results = pickle.load(open("./data/outputs/results.pkl", "rb"))
+# pickle.dump(results, open("./data/outputs/results12.pkl", "wb"))
+results = pickle.load(open("./data/outputs/results12.pkl", "rb"))
 
 # %%
 # fig 1: plot all seeds with pca before optimization
-fig, ax = plt.subplots(2, 4, figsize=(20, 10))
+
+fig, ax = plt.subplots(2, 4, figsize=(12, 8))
 for seed in seeds:
-    sim = make_toysim(seed)
-    delta_pca, proj = doPCA(sim)
-    wda, wcmb, wpda, wpcmb = results[seed]
+    sim = simloader.make_toysim(seed)
+    delta_pca, proj = sim2pcaproj(sim)
+    wpda, wpcmb = results[seed]
     wpda.loss.plot(ax=ax[0, 0], yscale="log", alpha=0.7)
     wpda.wnorm.plot(ax=ax[0, 1])
-    wpda.woptim.plot(ax=ax[0, 2])
-    ax[0, 3].plot(xr.dot(wpda.woptim, delta_pca.U, dims="freqs_eig"), label="da")
+    (axfreq,) = wpda.wda0.plot(ax=ax[0, 2])
+    (axfeig,) = ax[0, 3].plot(
+        xr.dot(wpda.wda0, delta_pca.U, dims="freqs_eig"), label="da"
+    )
     ax[0, 3].set_xlabel("freqs")
     wpcmb.loss.plot(ax=ax[1, 0], yscale="log", alpha=0.7)
     wpcmb.wnorm.plot(ax=ax[1, 1])
-    wpcmb.woptim.plot(ax=ax[1, 2])
-    ax[1, 3].plot(xr.dot(wpcmb.woptim, delta_pca.U, dims="freqs_eig"), label="cmb")
+    wpcmb.wcmb0.plot(ax=ax[1, 2])
+    ax[1, 3].plot(xr.dot(wpcmb.wcmb0, delta_pca.U, dims="freqs_eig"), label="cmb")
     ax[1, 3].set_xlabel("freqs")
 plt.suptitle("optimize pca sim")
 plt.show()
@@ -225,9 +209,9 @@ plt.show()
 # fig 2: plot all seeds, with and without pca before optimization
 fig, ax = plt.subplots(2, 5, figsize=(15, 10))
 for seed in seeds:
-    sim = make_toysim(seed)
-    delta_pca, proj = doPCA(sim)
-    wda, wcmb, wpda, wpcmb = results[seed]
+    sim = simloader.make_toysim(seed)
+    delta_pca, proj = sim2pcaproj(sim)
+    wpda, wpcmb = results[seed]
     pca_loss_da = proj.sel(kind="pdelta").var("times") / proj.sel(kind="mean pda") ** 2
     pca_loss_da_num = proj.sel(kind="pdelta").var("times")
     pca_loss_da_den = proj.sel(kind="mean pda") ** 2
@@ -236,18 +220,14 @@ for seed in seeds:
     )
     pca_loss_cmb_num = proj.sel(kind="pdelta").var("times")
     pca_loss_cmb_den = proj.sel(kind="mean pcmb") ** 2
-    wda_loss = wda.loss.isel(iter=slice(-100, None)).mean("iter")
     wpda_loss = wpda.loss.isel(iter=slice(-100, None)).mean("iter")
-    wcmb_loss = wcmb.loss.isel(iter=slice(-100, None)).mean("iter")
     wpcmb_loss = wpcmb.loss.isel(iter=slice(-100, None)).mean("iter")
 
     ax[0, 0].plot(xr.dot(wpda.woptim, delta_pca.U, dims="freqs_eig"), color=f"C{seed}")
     ax[0, 0].set_xlabel("freqs")
     ax[0, 0].set_title("da optimize pca")
-    wda.woptim.plot(ax=ax[0, 1], color=f"C{seed}")
     ax[0, 1].set_title("da optimize w/o pca")
     pca_loss_da.plot.scatter(yscale="log", ax=ax[0, 2], color="C0")
-    ax[0, 2].axhline(wda_loss, color=f"C{seed}")
     ax[0, 2].axhline(wpda_loss, color=f"C{seed}", linestyle="--")
     ax[0, 2].set_title("jax loss vs naive pca")
     # ax[0, 3].plot(pca_loss_da_num.mean("times"), color="C0")
@@ -262,10 +242,8 @@ for seed in seeds:
     )
     ax[1, 0].set_xlabel("freqs")
     ax[1, 0].set_title("cmb optimize pca")
-    wda.woptim.plot(ax=ax[1, 1], color=f"C{seed}")
     ax[1, 1].set_title("cmb optimize w/o pca")
     pca_loss_cmb.plot.scatter(yscale="log", ax=ax[1, 2], color="C1")
-    ax[1, 2].axhline(wcmb_loss, color=f"C{seed}")
     ax[1, 2].axhline(wpcmb_loss, color=f"C{seed}", linestyle="--")
     ax[1, 2].set_title("jax loss vs loss per pca mode")
     pca_loss_cmb_num.plot(ax=ax[1, 3], color="C0", x="freqs_eig")
@@ -288,10 +266,10 @@ plt.show()
 # %%
 # fig 3: fixed seed, jax loss vs loss per pca mode
 seed = 0
-sim = make_toysim(seed)
-delta_pca, proj = doPCA(sim)
+sim = simloader.make_toysim(seed)
+delta_pca, proj = sim2pcaproj(sim)
 wda, wcmb, wpda, wpcmb = results[seed]
-jfg, jpda, jpcmb, jpdelta = sim_to_jax(sim)
+jfg, jpda, jpcmb, jpdelta = simloader.sim2jax(sim)
 pca_loss_da = proj.sel(kind="pdelta").var("times") / proj.sel(kind="mean pda") ** 2
 pca_loss_cmb = proj.sel(kind="pdelta").var("times") / proj.sel(kind="mean pcmb") ** 2
 wda_loss = wda.loss.isel(iter=slice(-1000, None)).mean("iter")
@@ -332,10 +310,10 @@ maxamp = 1e10
 amp = jnp.linspace(-maxamp, maxamp, 100)
 
 seed = 0
-sim = make_toysim(seed)
-delta_pca, proj = doPCA(sim)
+sim = simloader.make_toysim(seed)
+delta_pca, proj = sim2pcaproj(sim)
 wda, wcmb, wpda, wpcmb = results[seed]
-jfg, jda, jcmb, jdelta = sim_to_jax(sim)
+jfg, jda, jcmb, jdelta = simloader.sim2jax(sim)
 plt.plot(amp, likelihood(wda.woptim.data, jfg.mean(axis=0), jda.mean(axis=0), amp))
 # plt.yscale("symlog")
 plt.show()

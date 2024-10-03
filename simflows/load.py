@@ -40,6 +40,34 @@ def load_templates(
 # %%
 
 
+def sim2jax(sim):
+    fg, da, cmb, _, delta = sim
+    jfg, jda, jcmb, jdelta = (
+        jnp.array(fg),
+        jnp.array(da),
+        jnp.array(cmb),
+        jnp.array(delta),
+    )
+    return jfg, jda, jcmb, jdelta
+
+
+def make_toysim(motherseed: int = 42):
+    rng = np.random.RandomState(motherseed)
+    seed1, seed2 = rng.randint(0, 1000, 2)
+    ntimes = 650
+    idxs = simjax.random_normal((ntimes, 1), seed=seed1, mean=2.5, sigma=0.5)
+    amp20MHz = simjax.random_normal((ntimes, 1), seed=seed2, mean=1e4, sigma=1e4)
+    amp20MHz = jnp.abs(amp20MHz)
+    sim = make_mock_sim(
+        ntimes=ntimes,
+        idxs=idxs,
+        amp20MHz=amp20MHz,
+        da_amp=1,
+        freqs=jnp.linspace(1, 50, 50),
+    )
+    return sim
+
+
 def make_mock_sim(
     freqs: jnp.ndarray = jnp.linspace(1, 50),
     fpivot: jnp.float64 = 20.0,

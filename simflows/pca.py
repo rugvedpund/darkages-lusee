@@ -24,7 +24,6 @@ def get_pca(
     # out["delta"] = datatensor - datatensor.mean(times_dim)
     # out["delta"].load()
 
-    print("doing pca..")
     U, S, Vt = datatensor.linalg.svd(
         dims=(freqs_dim, times_dim),
         full_matrices=False,
@@ -46,7 +45,6 @@ def get_pca_proj(
     freqs_dim: str,
     other_dims: [str],
 ) -> xr.Dataset:
-    print("projecting pca..")
     assert times_dim in fg.dims
     assert freqs_dim in fg.dims
     assert all(dim in fg.dims for dim in other_dims)

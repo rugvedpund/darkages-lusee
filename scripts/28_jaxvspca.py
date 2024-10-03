@@ -159,7 +159,6 @@ pca_loss_da = proj.sel(kind="pdelta").var("times") / proj.sel(kind="mean pda") *
 pca_loss_cmb = proj.sel(kind="pdelta").var("times") / proj.sel(kind="mean pcmb") ** 2
 wda_loss = wda.loss.isel(iter=slice(-1000, None)).mean("iter")
 wcmb_loss = wcmb.loss.isel(iter=slice(-1000, None)).mean("iter")
-
 pca_loss_da.plot.scatter(label="da", yscale="log")
 pca_loss_cmb.plot.scatter(label="cmb", yscale="log")
 plt.axhline(wda_loss, color="C0", label="wda")
