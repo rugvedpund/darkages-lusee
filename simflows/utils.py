@@ -11,7 +11,32 @@ import pandas as pd
 import xarray as xr
 import yaml
 
-##---------------------------------------------------------------------------##
+##--------------------------------------------------------------------##
+# argparser
+
+
+def parse_args(args):
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--configs", nargs="*", help="config yaml paths")
+    parser.add_argument("--outputs", nargs="*", help="output dir path")
+    parser.add_argument("--params_yaml", type=str, help="param yaml path")
+    parser.add_argument("--retrain", action="store_true")
+    parser.add_argument("--comb", type=str, help="e.g. 00R, auto, all", default="00R")
+    return parser.parse_args(args)
+
+
+##--------------------------------------------------------------------##
+# plotting utils
+
+
+def save_gif(fig, update, frames, interval, filepath):
+    ani = mpl.animation.FuncAnimation(fig, update, frames, interval)
+    writergif = mpl.animation.PillowWriter(fps=60)
+    ani.save(filepath, writer=writergif)
+    plt.show()
+
+
+##--------------------------------------------------------------------##
 
 
 def lognorm(**kwargs):

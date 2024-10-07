@@ -15,6 +15,16 @@ jax.config.update("jax_enable_x64", True)
 ##--------------------------------------------------------------------##
 # %%
 
+DEFAULT_SEED = 42
+DEFAULT_NITER = 100000
+DEFAULT_NTIMES = 650
+DEFAULT_IDXS_MEAN = 2.5
+DEFAULT_IDXS_SIGMA = 0.5
+DEFAULT_AMP20MEAN = 1e4
+DEFAULT_AMP20SIGMA = 1e4
+MASK_THRESHOLD = 12
+MASK_SIZE = 50
+
 
 def load_templates(
     freqs: jnp.ndarray = jnp.linspace(1, 50),
@@ -41,7 +51,7 @@ def load_templates(
 
 
 def sim2jax(sim):
-    fg, da, cmb, _, delta = sim
+    delta, fg, da, cmb = sim.sel(kind=["delta", "fg", "da", "cmb"])
     jfg, jda, jcmb, jdelta = (
         jnp.array(fg),
         jnp.array(da),
@@ -51,12 +61,16 @@ def sim2jax(sim):
     return jfg, jda, jcmb, jdelta
 
 
-def make_toysim(motherseed: int = 42):
+def make_toysim(motherseed: int = DEFAULT_SEED):
     rng = np.random.RandomState(motherseed)
     seed1, seed2 = rng.randint(0, 1000, 2)
-    ntimes = 650
-    idxs = simjax.random_normal((ntimes, 1), seed=seed1, mean=2.5, sigma=0.5)
-    amp20MHz = simjax.random_normal((ntimes, 1), seed=seed2, mean=1e4, sigma=1e4)
+    ntimes = DEFAULT_NTIMES
+    idxs = simjax.random_normal(
+        (ntimes, 1), seed=seed1, mean=DEFAULT_IDXS_MEAN, sigma=DEFAULT_IDXS_SIGMA
+    )
+    amp20MHz = simjax.random_normal(
+        (ntimes, 1), seed=seed2, mean=DEFAULT_AMP20MEAN, sigma=DEFAULT_AMP20SIGMA
+    )
     amp20MHz = jnp.abs(amp20MHz)
     sim = make_mock_sim(
         ntimes=ntimes,
@@ -71,7 +85,7 @@ def make_toysim(motherseed: int = 42):
 def make_mock_sim(
     freqs: jnp.ndarray = jnp.linspace(1, 50),
     fpivot: jnp.float64 = 20.0,
-    ntimes: int = 650,
+    ntimes: int = DEFAULT_NTIMES,
     amp20MHz: jnp.ndarray = None,
     idxs: jnp.ndarray = None,
     T_cmb: jnp.float32 = 2.75,
@@ -84,6 +98,9 @@ def make_mock_sim(
     if amp20MHz is None:
         print("  creating random amp30s..")
         amp20MHz = simjax.random_normal((ntimes, 1), seed=1, mean=1e5, sigma=1e5)
+
+    # print("sigma = 0.0")
+    # idxs = simjax.random_normal((ntimes, 1), seed=0, mean=2.5, sigma=0.0)
 
     amp20MHz = jnp.abs(amp20MHz)
     fg = fg_template(freqs, amp20MHz, idxs, fpivot)
