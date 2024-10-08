@@ -1,0 +1,14 @@
+python
+scipy
+numpy
+matplotlib
+jupyter
+jax
+jaxlib=*=*cuda*
+cuda-nvcc
+conda-build
+healpy
+pyshtools
+fitsio
+xarray
+xarray-einstats
