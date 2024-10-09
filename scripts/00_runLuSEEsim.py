@@ -1,6 +1,6 @@
 import sys
 
-sys.path.append("/home/rugvedpund/files/projects/luseepy/simulation/driver/")
+sys.path.append("/home/rugved/files/projects/luseepy/simulation/driver/")
 
 import os
 import pickle
