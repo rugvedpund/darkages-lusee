@@ -1,0 +1,6 @@
+# This file may be used to create an environment using:
+# $ pip install -r requirements.pip
+# platform: linux-64
+jax[cuda12]
+lunarsky
+optax

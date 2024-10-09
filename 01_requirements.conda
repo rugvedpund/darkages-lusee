@@ -1,0 +1,17 @@
+# This file may be used to create an environment using:
+# $ conda create --file requirements.conda --name <env> 
+# platform: linux-64
+python=3.12
+scipy
+numpy
+matplotlib
+jupyter
+conda-build
+healpy
+pyshtools
+fitsio
+xarray
+dask
+netCDF4
+bottleneck
+xarray-einstats
