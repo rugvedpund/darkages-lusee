@@ -1,5 +1,5 @@
 # %%
-from simflows.imports import *
+from dalusee.imports import *
 
 # %%
 
