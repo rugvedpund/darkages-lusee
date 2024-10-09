@@ -8,7 +8,6 @@ import matplotlib as mpl
 import matplotlib.animation as animation
 import optax
 
-import simflows.jax as simjax
 import simflows.load as simloader
 import simflows.pca as simpca
 import simflows.utils as simutils
