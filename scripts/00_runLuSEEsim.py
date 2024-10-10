@@ -3,12 +3,11 @@ import sys
 sys.path.append("/home/rugved/files/projects/luseepy/simulation/driver/")
 
 import os
-import pickle
 
 import numpy as np
 from run_sim import SimDriver
 
-import simflows.utils as simutils
+import dalusee.filemanager as filemgr
 
 ##---------------------------------------------------------------------------##
 """
@@ -25,18 +24,20 @@ if len(sys.argv) < 2:
     sys.exit(1)
 yaml_file = sys.argv[1]
 
-config = simutils.Config(yaml_file)
+config = filemgr.Config(yaml_file)
 
-ulsaconfig = simutils.Config(yaml_file).make_ulsa_config()
+ulsaconfig = filemgr.Config(yaml_file).make_ulsa_config()
 
-daconfig = simutils.Config(yaml_file).make_da_config()
+daconfig = filemgr.Config(yaml_file).make_da_config()
 
-cmbconfig = simutils.Config(yaml_file).make_cmb_config()
+cmbconfig = filemgr.Config(yaml_file).make_cmb_config()
 
 print(f"Output directory: {config.outdir}")
 if not os.path.exists(config.outdir):
     print(f"Creating output directory: {config.outdir}")
     os.makedirs(config.outdir)
+
+config.save()
 
 print(ulsaconfig)
 ulsasim = SimDriver(ulsaconfig)
@@ -49,37 +50,3 @@ dasim.run()
 print(cmbconfig)
 cmbsim = SimDriver(cmbconfig)
 cmbsim.run()
-
-# amp = np.logspace(np.log10(0.01),np.log10(100),10)
-# for a in amp:
-#     config = simutils.Config(yaml_file)
-#     cfg_name = f"amp{a:1.1e}"
-
-#     ulsaconfig = simutils.Config(yaml_file).make_ulsa_config()
-#     ulsaconfig["simulation"]["output"] = f"{cfg_name}/ulsa.fits"
-
-#     daconfig = simutils.Config(yaml_file).make_da_config()
-#     daconfig["sky"]["A"] *= float(a)
-#     daconfig["simulation"]["output"] = f"{cfg_name}/da.fits"
-
-#     cmbconfig = simutils.Config(yaml_file).make_cmb_config()
-#     cmbconfig["sky"]["Tcmb"] *= float(a)
-#     cmbconfig["simulation"]["output"] = f"{cfg_name}/cmb.fits"
-
-#     out_dir = os.path.join(os.environ["LUSEE_OUTPUT_DIR"], cfg_name)
-#     print(f"Output directory: {out_dir}")
-#     if not os.path.exists(out_dir):
-#         print(f"Creating output directory: {out_dir}")
-#         os.makedirs(out_dir)
-
-#     print(ulsaconfig)
-#     ulsasim = SimDriver(ulsaconfig)
-#     ulsasim.run()
-
-#     print(daconfig)
-#     dasim = SimDriver(daconfig)
-#     dasim.run()
-
-#     print(cmbconfig)
-#     cmbsim = SimDriver(cmbconfig)
-#     cmbsim.run()
