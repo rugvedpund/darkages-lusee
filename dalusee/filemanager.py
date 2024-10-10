@@ -7,6 +7,16 @@ import xarray as xr
 import yaml
 
 
+def parse_args(args):
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--configs", nargs="*", help="config yaml paths")
+    parser.add_argument("--outputs", nargs="*", help="output dir path")
+    parser.add_argument("--params_yaml", type=str, help="param yaml path")
+    parser.add_argument("--retrain", action="store_true")
+    parser.add_argument("--comb", type=str, help="e.g. 00R, auto, all", default="00R")
+    return parser.parse_args(args)
+
+
 def check_file_exists(file_path):
     return os.path.exists(file_path)
 
@@ -24,14 +34,25 @@ class Config(dict):
         return yaml.dump(self)
 
     @property
-    def name(self):
+    def _name(self):
         yamlnamedotyaml = os.path.basename(self.yaml_file)
         yamlname = os.path.splitext(yamlnamedotyaml)[0]
         return yamlname
 
     @property
-    def outdir(self):
-        return os.path.join(os.environ["LUSEE_OUTPUT_DIR"], self.name)
+    def _outdir(self):
+        return os.path.join(os.environ["LUSEE_OUTPUT_DIR"], self._name)
+
+    def _outname(self):
+        # TODO: add da/cmb/ulsa to the yaml name
+        return self._name
+
+    def save(self):
+        filename = os.path.join(self._outdir, self._name)
+        filename += ".yaml"
+        print("saving config to", filename)
+        with open(filename, "w") as file:
+            yaml.dump(self, file)
 
     def from_yaml(self, yaml_file):
         with open(yaml_file) as f:
@@ -43,7 +64,7 @@ class Config(dict):
         print("Making ULSA config")
         self["sky"] = {"file": "ULSA_32_ddi_smooth.fits"}
         self["simulation"]["output"] = (
-            f"{self.name}/ulsa.fits"  # $LUSEE_OUTPUT_DIR + self.name + "/ulsa.fits"
+            f"{self._name}/ulsa.fits"  # $LUSEE_OUTPUT_DIR + self.name + "/ulsa.fits"
         )
         return self
 
@@ -57,7 +78,7 @@ class Config(dict):
             "A": 0.04,
         }
         self["simulation"]["output"] = (
-            f"{self.name}/da.fits"  # $LUSEE_OUTPUT_DIR + self.name + "/da.fits"
+            f"{self._name}/da.fits"  # $LUSEE_OUTPUT_DIR + self.name + "/da.fits"
         )
         return self
 
@@ -65,16 +86,9 @@ class Config(dict):
         print("Making CMB config")
         self["sky"] = {"type": "CMB", "Tcmb": 2.73}
         self["simulation"]["output"] = (
-            f"{self.name}/cmb.fits"  # $LUSEE_OUTPUT_DIR + self.name + "/cmb.fits"
+            f"{self._name}/cmb.fits"  # $LUSEE_OUTPUT_DIR + self.name + "/cmb.fits"
         )
         return self
-
-    def save(self):
-        filename = os.path.join(self.outdir, self.name)
-        filename += ".yaml"
-        print("saving config to", filename)
-        with open(filename, "w") as file:
-            yaml.dump(self, file)
 
 
 @xr.register_dataset_accessor("configLoader")
@@ -82,9 +96,9 @@ class ConfigLoaderAccessor:
     def from_config(self, config: Config):
         import lusee
 
-        ulsapath = config.outdir + "/ulsa.fits"
-        dapath = config.outdir + "/da.fits"
-        cmbpath = config.outdir + "/cmb.fits"
+        ulsapath = config._outdir + "/ulsa.fits"
+        dapath = config._outdir + "/da.fits"
+        cmbpath = config._outdir + "/cmb.fits"
         self.ulsa = xr.DataArray().luseeDataLoader.from_luseeData(
             lusee.Data(ulsapath), name="ulsa"
         )

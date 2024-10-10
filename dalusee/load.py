@@ -101,7 +101,7 @@ def make_mock_sim(
         print("  creating random amp30s..")
         amp20MHz = random_normal((ntimes, 1), seed=1, mean=1e5, sigma=1e5)
     # print("sigma = 0.0")
-    # idxs = simjax.random_normal((ntimes, 1), seed=0, mean=2.5, sigma=0.0)
+    # idxs = random_normal((ntimes, 1), seed=0, mean=2.5, sigma=0.0)
     amp20MHz = np.abs(amp20MHz)
     fg = fg_template(freqs, amp20MHz, idxs, fpivot)
     # print(f"{fg.shape=}")

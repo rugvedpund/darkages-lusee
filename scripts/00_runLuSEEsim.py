@@ -32,10 +32,10 @@ daconfig = filemgr.Config(yaml_file).make_da_config()
 
 cmbconfig = filemgr.Config(yaml_file).make_cmb_config()
 
-print(f"Output directory: {config.outdir}")
-if not os.path.exists(config.outdir):
-    print(f"Creating output directory: {config.outdir}")
-    os.makedirs(config.outdir)
+print(f"Output directory: {config._outdir}")
+if not os.path.exists(config._outdir):
+    print(f"Creating output directory: {config._outdir}")
+    os.makedirs(config._outdir)
 
 config.save()
 

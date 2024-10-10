@@ -219,16 +219,14 @@ plt.show()
 
 
 # %%
-# %%
 # plot dot product of woptims with pca modes
 # delta_pca.U.isel
 wpda.woptim.plot()
 plt.show()
 
 
-##--------------------------------------------------------------------##
-
 # %%
+##--------------------------------------------------------------------##
 # fig 3: fixed seed, jax loss vs loss per pca mode
 
 seed = 0

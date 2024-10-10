@@ -1,0 +1,5 @@
+[tool.ruff]
+ignore = ["F403", "F405"]
+[tool.pyright]
+reportMissingTypeStubs = false
+typeCheckingMode = "on"
